@@ -1,0 +1,482 @@
+{
+  "app": {
+    "name": "almaraama",
+    "tagline": "Maintenance for your residence"
+  },
+  "language": {
+    "label": "Language",
+    "ar": "العربية",
+    "en": "English",
+    "fr": "Français"
+  },
+  "home": {
+    "title": "Welcome",
+    "empty": "Your space is ready. The screens for your role will appear here."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to home"
+  },
+  "engine": {
+    "refused": "This block cannot be displayed."
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "No connection. Your actions will be sent when the network is back.",
+    "codes": {
+      "AUTH_INVALID_CREDENTIALS": "Wrong e-mail or password.",
+      "AUTH_TEMPORARILY_LOCKED": "Too many attempts. Try again in {{minutes}} minute(s).",
+      "RATE_LIMITED": "Too many attempts. Please wait a minute.",
+      "EMAIL_NOT_VERIFIED": "Your e-mail address is not confirmed yet. Open the link you received by e-mail.",
+      "LINK_INVALID_OR_EXPIRED": "This link is no longer valid. Ask for a new one.",
+      "PASSWORD_TOO_SHORT": "The password needs at least 8 characters.",
+      "PASSWORD_TOO_LONG": "The password can have at most 128 characters.",
+      "PASSWORD_TOO_COMMON": "This password is too common. Choose another one, for example a short sentence.",
+      "PASSWORD_SAME_AS_EMAIL": "The password must not be your e-mail address.",
+      "ALTCHA_INVALID": "The anti-robot check failed. Reload the page and try again.",
+      "VALIDATION_FAILED": "Check what you entered.",
+      "SESSION_INVALID": "Your session has expired. Please sign in again.",
+      "REGISTRATION_CODE_INVALID": "This code is not valid. Check it, or ask the manager for the new one.",
+      "MEMBERSHIP_EXISTS": "You already have an access, or a request, for this residence.",
+      "COMMENT_TOO_LONG": "The comment can have at most 500 characters.",
+      "PHONE_INVALID": "This mobile number is not valid.",
+      "EMAIL_INVALID": "This e-mail address is not valid.",
+      "PERMISSION_DENIED": "You do not have the right to do this.",
+      "NOT_FOUND": "Not found.",
+      "VERSION_CONFLICT": "Someone changed this in the meantime. Reload the page.",
+      "OCCUPANCY_OWNER_EXISTS": "This unit already has an owner (one owner per unit).",
+      "OCCUPANCY_PRIMARY_TENANT_EXISTS": "This unit already has a primary tenant.",
+      "OCCUPANCY_PRIMARY_TENANT_NOT_TENANT": "Only a tenant can be the primary tenant.",
+      "PRE_REGISTRATION_EXISTS": "This person is already pre-registered on this residence.",
+      "PRE_REGISTRATION_NOT_PENDING": "This pre-registration was already used or cancelled.",
+      "PRE_REGISTRATION_UNITS_INVALID": "Choose between 1 and 50 different units.",
+      "UNIT_NOT_IN_SITE": "This unit is not in this residence.",
+      "MEMBERSHIP_NOT_PENDING": "This request was already decided.",
+      "IMPORT_FILE_INVALID": "This file is not an Excel file made from the template.",
+      "IMPORT_FILE_TOO_LARGE": "The file is too large (2 MB and 2,000 rows at most).",
+      "IMPORT_VALUE_REQUIRED": "Missing value.",
+      "IMPORT_VALUE_INVALID": "Value not allowed.",
+      "IMPORT_DUPLICATE_IN_FILE": "Appears twice in the file.",
+      "IMPORT_BUILDING_UNKNOWN": "No building with this name.",
+      "IMPORT_OUTDOOR_AREA_UNKNOWN": "No outdoor area with this name.",
+      "IMPORT_ANNEX_UNKNOWN": "No apartment with this reference.",
+      "IMPORT_CATEGORY_UNKNOWN": "Unknown category code.",
+      "IMPORT_UNIT_UNKNOWN": "No unit with this reference.",
+      "IMPORT_PERSON_MISMATCH": "Same e-mail with different details on another row.",
+      "UNIT_REFERENCE_TAKEN": "Another unit already has this reference.",
+      "UNIT_CATEGORY_TYPE_MISMATCH": "This category is for another type of unit.",
+      "UNIT_LOCATION_INVALID": "A building or an outdoor area, not both.",
+      "UNIT_FLOOR_INVALID": "Floor not valid for this building.",
+      "UNIT_ANNEX_INVALID": "Only a parking or a storage room can be attached to an apartment.",
+      "UNIT_CATEGORY_CODE_TAKEN": "This code is already used.",
+      "ZONE_CODE_TAKEN": "Another zone already has this code.",
+      "ZONE_NAME_TAKEN": "A zone with this name already exists.",
+      "ZONE_NOT_PROVISIONAL": "This zone is not provisional anymore.",
+      "ZONE_MERGE_TARGET_INVALID": "Choose a validated zone of the same level.",
+      "SUPPORT_SESSION_OPEN": "End the support sessions on this organization first.",
+      "SUPPORT_REASON_INVALID": "Give a reason of at least 10 characters.",
+      "ORGANIZATION_NOT_ACTIVE": "This organization is deactivated.",
+      "TEXT_VARIABLES_CHANGED": "Keep exactly the {{…}} variables of the original text.",
+      "ROLE_ASSIGNMENT_EXISTS": "This person already has this role.",
+      "ROLE_NOT_GRANTABLE": "You cannot give this role.",
+      "PERMISSION_NOT_ADJUSTABLE": "This permission cannot be changed."
+    }
+  },
+  "login": {
+    "title": "Sign in",
+    "email": "E-mail address",
+    "password": "Password",
+    "submit": "Sign in",
+    "forgot": "Forgot your password?",
+    "resendVerification": "Get a new confirmation link",
+    "phoneCountry": "Country and prefix"
+  },
+  "invitation": {
+    "greeting": "Hello {{name}}",
+    "intro": "Choose your password for the account {{email}}. You will use it to sign in.",
+    "submit": "Save my password"
+  },
+  "session": {
+    "logout": "Sign out",
+    "greeting": "Hello {{name}}"
+  },
+  "validation": {
+    "email": "Enter your e-mail address.",
+    "emailInvalid": "This e-mail address is not valid.",
+    "password": "Enter your password.",
+    "passwordTooShort": "At least 8 characters.",
+    "passwordTooLong": "At most 128 characters.",
+    "passwordMismatch": "The two passwords are not the same.",
+    "phone": "Enter your phone number.",
+    "phoneInvalid": "This mobile number is not valid for this country.",
+    "required": "Required."
+  },
+  "password": {
+    "new": "New password",
+    "confirm": "Confirm the password",
+    "rules": "At least 8 characters. A short sentence that is easy to remember works well.",
+    "show": "Show the password",
+    "hide": "Hide the password"
+  },
+  "forgot": {
+    "title": "Forgot your password",
+    "intro": "Enter your e-mail address. You will receive a link to choose a new password.",
+    "submit": "Send me the link",
+    "sent": "If an account matches this address, an e-mail is on its way. The link is valid for one hour."
+  },
+  "reset": {
+    "title": "New password",
+    "submit": "Save",
+    "done": "Your password was changed. You were signed out of your devices: sign in with the new password."
+  },
+  "verify": {
+    "title": "Confirm my e-mail address",
+    "done": "Your e-mail address is confirmed. You can sign in.",
+    "intro": "Enter your e-mail address to receive a new confirmation link.",
+    "submit": "Send me a new link",
+    "sent": "If an account is waiting for its confirmation, an e-mail is on its way. The link is valid for 48 hours."
+  },
+  "links": {
+    "checking": "Checking the link…",
+    "missing": "Incomplete link. Open the whole link you received.",
+    "backToLogin": "Back to sign in"
+  },
+  "altcha": {
+    "label": "Anti-robot check",
+    "verifying": "Checking…",
+    "verified": "Verified",
+    "error": "The check failed. Reload the page.",
+    "expired": "The check expired. Reload the page.",
+    "failedHelp": "The anti-robot check could not finish. Check your connection, then reload the page."
+  },
+  "common": {
+    "active": "Active",
+    "inactive": "Deactivated",
+    "save": "Save",
+    "search": "Search",
+    "loading": "Loading…"
+  },
+  "person": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "name": "Name",
+    "phone": "Mobile phone",
+    "language": "Language"
+  },
+  "nav": {
+    "admin": "Platform administration",
+    "adminOrganizations": "Organizations",
+    "adminZones": "Provisional zones",
+    "adminCategories": "Default categories",
+    "adminTexts": "Texts",
+    "adminSupport": "Support sessions",
+    "sites": "Residences",
+    "site": "Residence and buildings",
+    "categories": "Unit categories",
+    "people": "People and roles",
+    "units": "Units",
+    "requests": "Access requests",
+    "preRegistrations": "Pre-registrations",
+    "qr": "Registration QR code",
+    "myAccesses": "My residences"
+  },
+  "registration": {
+    "title": "Register to your residence",
+    "intro": "Enter the code shown under the QR code of your residence.",
+    "site": "Residence {{siteName}} ({{organizationName}})",
+    "code": "Residence code",
+    "comment": "Comment for the manager",
+    "commentHint": "For example: Apartment B12, owner; parking P3.",
+    "key": "Personal key (if you received one)",
+    "keyHint": "With the key and the expected e-mail, your access is approved at once.",
+    "submit": "Send my registration",
+    "doneTitle": "Check your e-mail",
+    "done": "We sent you an e-mail. Open the link to confirm your address: your request then reaches the manager.",
+    "haveAccount": "You already have an account?",
+    "signInAndJoin": "Sign in and join this residence"
+  },
+  "access": {
+    "title": "My residences",
+    "intro": "Your accesses and your units. A pending request shows nothing until the manager approves it.",
+    "none": "No residence yet.",
+    "joinTitle": "Join another residence",
+    "join": "Send my request",
+    "joinedPending": "Request sent. The manager will decide.",
+    "joinedActive": "Your key was recognized: your access is open."
+  },
+  "membershipStatus": {
+    "PENDING": "Pending",
+    "ACTIVE": "Active",
+    "REJECTED": "Refused",
+    "DEACTIVATED": "Ended"
+  },
+  "unitType": {
+    "APARTMENT": "Apartment",
+    "SHOP": "Shop",
+    "PARKING": "Parking",
+    "STORAGE": "Storage room",
+    "OTHER": "Other"
+  },
+  "occupancyRole": {
+    "OWNER": "Owner",
+    "TENANT": "Tenant"
+  },
+  "keyOutcome": {
+    "MATCHED": "Key recognized",
+    "MATCHED_NEEDS_REVIEW": "Key recognized, a unit is taken",
+    "NOT_MATCHED": "Key not recognized",
+    "NONE": "No key"
+  },
+  "requests": {
+    "title": "Access requests and residents",
+    "intro": "Read the comment, choose the person's units and approve, or refuse.",
+    "tab": {
+      "PENDING": "Pending",
+      "ACTIVE": "Residents",
+      "REJECTED": "Refused"
+    },
+    "none": "Nothing here.",
+    "noComment": "No comment.",
+    "approve": "Approve with these units",
+    "reject": "Refuse",
+    "reason": "Reason (optional)"
+  },
+  "units": {
+    "search": "Find a unit by its reference",
+    "role": "Role",
+    "chosen": "{{count}} unit(s) chosen",
+    "title": "Units",
+    "count": "{{count}} units",
+    "reference": "Reference",
+    "type": "Type",
+    "category": "Category",
+    "floor": "Floor",
+    "createTitle": "Add a unit",
+    "create": "Add"
+  },
+  "import": {
+    "unitsTitle": "Import units from Excel",
+    "unitsIntro": "Download the template, fill one row per unit, then send it. Nothing is created if a row has an error.",
+    "residentsTitle": "Import residents from Excel",
+    "residentsIntro": "One row per planned unit. Each person receives a personal key, shown once.",
+    "template": "Download the template",
+    "file": "Excel file (.xlsx)",
+    "dryRun": "Only check the file",
+    "send": "Send the file",
+    "row": "Row",
+    "column": "Column",
+    "error": "Problem",
+    "value": "Value",
+    "outcome": {
+      "CHECKED": "{{total}} rows checked, no error. Untick \"only check\" to import.",
+      "IMPORTED": "{{created}} created from {{total}} rows.",
+      "REJECTED": "Nothing was created: correct the rows below and send again."
+    },
+    "columns": {
+      "reference": "Reference",
+      "type": "Type",
+      "category": "Category",
+      "building": "Building",
+      "outdoorArea": "Outdoor area",
+      "floor": "Floor",
+      "annexOf": "Annex of",
+      "saleable": "Saleable",
+      "rentable": "Rentable",
+      "lastName": "Last name",
+      "firstName": "First name",
+      "email": "E-mail",
+      "phone": "Phone",
+      "language": "Language",
+      "unit": "Unit",
+      "role": "Role",
+      "primaryTenant": "Primary tenant"
+    }
+  },
+  "pre": {
+    "title": "Pre-registrations",
+    "intro": "Prepare the arrival of a person with their units: they register with the QR code and their key, and are approved at once.",
+    "createTitle": "Pre-register a person",
+    "create": "Create the key",
+    "days": "Key valid for (days)",
+    "listTitle": "Pre-registered people",
+    "none": "No pre-registration.",
+    "units": "Units",
+    "status": "Status",
+    "key": "Key",
+    "expires": "Valid until",
+    "keysTitle": "Keys to hand over",
+    "keysOnce": "These keys are shown only now. Print them or download them before leaving this page.",
+    "printKeys": "Print",
+    "downloadKeys": "Download (CSV)",
+    "keysDone": "I have kept them",
+    "renew": "New key",
+    "cancel": "Cancel",
+    "cancelConfirm": "Cancel this pre-registration? Its key will stop working."
+  },
+  "preStatus": {
+    "PENDING": "Waiting",
+    "USED": "Used",
+    "CANCELLED": "Cancelled",
+    "EXPIRED": "Expired"
+  },
+  "qr": {
+    "title": "Registration QR code",
+    "intro": "Print it at the entrance: residents scan it to register.",
+    "imageLabel": "QR code of the residence",
+    "enabled": "Registration open",
+    "disabled": "Registration closed",
+    "enable": "Open registration",
+    "disable": "Close registration",
+    "enabledNotice": "Registration is open again.",
+    "disabledNotice": "Registration is closed: the code no longer works.",
+    "downloadSvg": "Download (SVG)",
+    "downloadPng": "Download (PNG)",
+    "print": "Print",
+    "rotate": "Replace the code",
+    "rotateConfirm": "Replace the code? The printed one will stop working at once.",
+    "rotated": "New code created. Print it again.",
+    "printInstruction": "Scan this code with your phone to register to the residence."
+  },
+  "sites": {
+    "title": "Residences",
+    "none": "No residence yet.",
+    "createTitle": "Add a residence",
+    "name": "Name of the residence",
+    "addressLine": "Address",
+    "create": "Add the residence"
+  },
+  "zones": {
+    "upper": "Wilaya",
+    "attachment": "Commune",
+    "provisional": "provisional",
+    "missing": "Commune missing from the list",
+    "createProvisional": "Add it as provisional"
+  },
+  "buildings": {
+    "title": "Buildings",
+    "name": "Building",
+    "floors": "Floors",
+    "address": "Address",
+    "add": "Add the building"
+  },
+  "addressOrigin": {
+    "SITE_COPY": "copy of the residence's",
+    "OWN": "its own"
+  },
+  "categories": {
+    "title": "Unit categories",
+    "intro": "The default typologies and your own categories.",
+    "addTitle": "Add a category",
+    "add": "Add",
+    "code": "Code",
+    "codeHint": "Capital letters and digits, for example T6 or LARGE_SHOP.",
+    "name": "Name"
+  },
+  "scope": {
+    "PLATFORM": "default",
+    "ORGANIZATION": "yours",
+    "SITE": "this residence"
+  },
+  "people": {
+    "title": "People and roles",
+    "intro": "Give the manager role on a residence, and choose the rights of each role. A change applies at once and is logged.",
+    "inviteManager": "Add a manager",
+    "site": "Residence",
+    "invite": "Invite",
+    "roles": "Roles",
+    "account": "Account",
+    "customized": "Changed in your organization",
+    "sensitive": "sensitive",
+    "changed": "changed",
+    "resetDefaults": "Back to defaults"
+  },
+  "roles": {
+    "ORG_ADMIN": "Promoteur",
+    "SITE_MANAGER": "Manager",
+    "TECHNICIAN": "Technician",
+    "RESIDENT": "Resident",
+    "PLATFORM_ADMIN": "Platform administrator"
+  },
+  "accountStatus": {
+    "ACTIVE": "Active",
+    "INVITED": "Invited",
+    "PENDING_VERIFICATION": "E-mail not confirmed",
+    "DEACTIVATED": "Deactivated"
+  },
+  "organizationType": {
+    "PROPERTY_DEVELOPER": "Property developer",
+    "RESIDENCE": "Residence without promoteur"
+  },
+  "adminOrganizations": {
+    "title": "Organizations",
+    "intro": "Client organizations, their promoteurs and support access.",
+    "createTitle": "Onboard an organization",
+    "name": "Name",
+    "type": "Type",
+    "create": "Create and invite the promoteur",
+    "counts": "{{sites}} residence(s), {{owners}} promoteur(s)",
+    "reason": "Reason",
+    "reasonHint": "Mandatory: for a deactivation, and for a support access (10 characters at least, for example the ticket number).",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "inviteOwner": "Invite one more promoteur",
+    "sendInvitation": "Send the invitation"
+  },
+  "support": {
+    "title": "Support sessions",
+    "intro": "Every access to an organization's data, with its reason. Each action done meanwhile is logged with the session.",
+    "open": "Open a support access (1 hour)",
+    "opened": "Support access open for one hour. Go to the home page to work in this organization.",
+    "banner": "Support access: {{organization}}, until {{until}}. Every action is logged.",
+    "end": "End the access",
+    "organization": "Organization",
+    "administrator": "Administrator",
+    "reason": "Reason",
+    "status": "Status"
+  },
+  "supportStatus": {
+    "OPEN": "Open",
+    "ENDED": "Ended",
+    "EXPIRED": "Expired"
+  },
+  "adminZones": {
+    "title": "Provisional zones",
+    "intro": "Communes created by promoteurs: validate them with their official code, or merge them into the right commune.",
+    "none": "No provisional zone waiting.",
+    "details": "Under {{parent}} · created by {{organization}} · {{addresses}} address(es)",
+    "code": "Official code",
+    "validate": "Validate",
+    "target": "Merge into",
+    "merge": "Merge",
+    "mergeConfirm": "Merge? Its addresses move to the chosen commune."
+  },
+  "adminCategories": {
+    "title": "Default unit categories",
+    "intro": "Offered to every organization."
+  },
+  "texts": {
+    "title": "Texts of the application",
+    "intro": "A saved text is visible at once, without a new version. A new version never overwrites it.",
+    "missingIn": "Missing in",
+    "editedOnly": "Changed texts only",
+    "history": "History",
+    "missing": "missing",
+    "release": "Release",
+    "restore": "Put back"
+  },
+  "textOrigin": {
+    "SEED": "delivered",
+    "EDITED": "changed"
+  },
+  "notifications": {
+    "bell": "Notifications, {{count}} unread",
+    "none": "No notification.",
+    "readAll": "Mark all as read",
+    "templates": {
+      "ACCESS_REQUESTED": "{{personName}} asks for access to {{siteName}}.",
+      "ACCESS_AUTO_APPROVED": "{{personName}} joined {{siteName}} with their key.",
+      "ACCESS_APPROVED": "Your access to {{siteName}} is open.",
+      "ACCESS_REJECTED": "Your request for {{siteName}} was refused."
+    }
+  }
+}

@@ -1,0 +1,14 @@
+Subject: Confirmez votre adresse e-mail
+
+Bonjour {{firstName}},
+
+Pour confirmer votre adresse e-mail et activer votre compte almaraama, ouvrez ce lien :
+
+{{link}}
+
+Le lien est valable {{validHours}} heures et ne sert qu'une fois.
+
+Si vous n'avez pas créé de compte, ignorez ce message.
+
+-- 
+almaraama

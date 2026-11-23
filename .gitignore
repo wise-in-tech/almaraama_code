@@ -1,0 +1,18 @@
+# Secrets
+secrets/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build
+**/target/
+**/node_modules/
+**/dist/
+
+# IDE and OS
+.idea/
+*.iml
+.vscode/
+.DS_Store

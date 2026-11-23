@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.almaraama</groupId>
+        <artifactId>notification</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>notification-impl</artifactId>
+    <name>notification-impl</name>
+    <description>Implementation of notification: domain, application and adapters (hexagonal).
+        Depends on its own api, on shared, and on the api artifacts of the modules it is allowed to use.
+        Technology libraries (JPA, web, SMS, storage...) are added here only when an adapter needs them.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.almaraama</groupId>
+            <artifactId>notification-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.almaraama</groupId>
+            <artifactId>shared</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.almaraama</groupId>
+            <artifactId>maintenance-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.almaraama</groupId>
+            <artifactId>membership-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.almaraama</groupId>
+            <artifactId>preventive-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.modulith</groupId>
+            <artifactId>spring-modulith-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.modulith</groupId>
+            <artifactId>spring-modulith-events-api</artifactId>
+        </dependency>
+
+        <!-- Adapters: persistence, web. Only this module carries them (ADR-023). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+    </dependencies>
+</project>

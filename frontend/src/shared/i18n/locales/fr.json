@@ -1,0 +1,482 @@
+{
+  "app": {
+    "name": "almaraama",
+    "tagline": "Maintenance de votre résidence"
+  },
+  "language": {
+    "label": "Langue",
+    "ar": "العربية",
+    "en": "English",
+    "fr": "Français"
+  },
+  "home": {
+    "title": "Bienvenue",
+    "empty": "Votre espace est prêt. Les écrans de votre rôle apparaîtront ici."
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "back": "Retour à l'accueil"
+  },
+  "engine": {
+    "refused": "Ce bloc ne peut pas être affiché."
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Réessayez.",
+    "network": "Pas de connexion. Vos actions seront envoyées au retour du réseau.",
+    "codes": {
+      "AUTH_INVALID_CREDENTIALS": "E-mail ou mot de passe incorrect.",
+      "AUTH_TEMPORARILY_LOCKED": "Trop d'essais. Réessayez dans {{minutes}} minute(s).",
+      "RATE_LIMITED": "Trop de tentatives. Patientez une minute.",
+      "EMAIL_NOT_VERIFIED": "Votre adresse e-mail n'est pas encore confirmée. Ouvrez le lien reçu par e-mail.",
+      "LINK_INVALID_OR_EXPIRED": "Ce lien n'est plus valable. Demandez un nouveau lien.",
+      "PASSWORD_TOO_SHORT": "Le mot de passe doit avoir au moins 8 caractères.",
+      "PASSWORD_TOO_LONG": "Le mot de passe doit avoir au plus 128 caractères.",
+      "PASSWORD_TOO_COMMON": "Ce mot de passe est trop courant. Choisissez-en un autre, par exemple une petite phrase.",
+      "PASSWORD_SAME_AS_EMAIL": "Le mot de passe ne doit pas être votre adresse e-mail.",
+      "ALTCHA_INVALID": "La vérification anti-robot a échoué. Rechargez la page et réessayez.",
+      "VALIDATION_FAILED": "Vérifiez les informations saisies.",
+      "SESSION_INVALID": "Votre session a expiré. Reconnectez-vous.",
+      "REGISTRATION_CODE_INVALID": "Ce code n'est pas valable. Vérifiez-le, ou demandez le nouveau code au gestionnaire.",
+      "MEMBERSHIP_EXISTS": "Vous avez déjà un accès ou une demande pour cette résidence.",
+      "COMMENT_TOO_LONG": "Le commentaire fait au plus 500 caractères.",
+      "PHONE_INVALID": "Ce numéro de mobile n'est pas valable.",
+      "EMAIL_INVALID": "Cette adresse e-mail n'est pas valable.",
+      "PERMISSION_DENIED": "Vous n'avez pas le droit de faire cette action.",
+      "NOT_FOUND": "Introuvable.",
+      "VERSION_CONFLICT": "Quelqu'un a modifié cet élément entre-temps. Rechargez la page.",
+      "OCCUPANCY_OWNER_EXISTS": "Ce bien a déjà un propriétaire (un seul par bien).",
+      "OCCUPANCY_PRIMARY_TENANT_EXISTS": "Ce bien a déjà un locataire principal.",
+      "OCCUPANCY_PRIMARY_TENANT_NOT_TENANT": "Seul un locataire peut être locataire principal.",
+      "PRE_REGISTRATION_EXISTS": "Cette personne est déjà pré-inscrite sur cette résidence.",
+      "PRE_REGISTRATION_NOT_PENDING": "Cette pré-inscription est déjà utilisée ou annulée.",
+      "PRE_REGISTRATION_UNITS_INVALID": "Choisissez de 1 à 50 biens différents.",
+      "UNIT_NOT_IN_SITE": "Ce bien n'est pas dans cette résidence.",
+      "MEMBERSHIP_NOT_PENDING": "Cette demande a déjà été traitée.",
+      "IMPORT_FILE_INVALID": "Ce fichier n'est pas un fichier Excel fait à partir du modèle.",
+      "IMPORT_FILE_TOO_LARGE": "Le fichier est trop gros (2 Mo et 2 000 lignes au plus).",
+      "IMPORT_VALUE_REQUIRED": "Valeur manquante.",
+      "IMPORT_VALUE_INVALID": "Valeur non autorisée.",
+      "IMPORT_DUPLICATE_IN_FILE": "Présent deux fois dans le fichier.",
+      "IMPORT_BUILDING_UNKNOWN": "Aucun bâtiment de ce nom.",
+      "IMPORT_OUTDOOR_AREA_UNKNOWN": "Aucun espace extérieur de ce nom.",
+      "IMPORT_ANNEX_UNKNOWN": "Aucun appartement avec cette référence.",
+      "IMPORT_CATEGORY_UNKNOWN": "Code de catégorie inconnu.",
+      "IMPORT_UNIT_UNKNOWN": "Aucun bien avec cette référence.",
+      "IMPORT_PERSON_MISMATCH": "Même e-mail avec d'autres informations sur une autre ligne.",
+      "UNIT_REFERENCE_TAKEN": "Un autre bien a déjà cette référence.",
+      "UNIT_CATEGORY_TYPE_MISMATCH": "Cette catégorie est pour un autre type de bien.",
+      "UNIT_LOCATION_INVALID": "Un bâtiment ou un espace extérieur, pas les deux.",
+      "UNIT_FLOOR_INVALID": "Étage non valable pour ce bâtiment.",
+      "UNIT_ANNEX_INVALID": "Seul un parking ou une cave peut être rattaché à un appartement.",
+      "UNIT_CATEGORY_CODE_TAKEN": "Ce code est déjà utilisé.",
+      "ZONE_CODE_TAKEN": "Une autre zone a déjà ce code.",
+      "ZONE_NAME_TAKEN": "Une zone de ce nom existe déjà.",
+      "ZONE_NOT_PROVISIONAL": "Cette zone n'est plus provisoire.",
+      "ZONE_MERGE_TARGET_INVALID": "Choisissez une zone validée du même niveau.",
+      "SUPPORT_SESSION_OPEN": "Terminez d'abord les accès support sur cette organisation.",
+      "SUPPORT_REASON_INVALID": "Donnez un motif d'au moins 10 caractères.",
+      "ORGANIZATION_NOT_ACTIVE": "Cette organisation est désactivée.",
+      "TEXT_VARIABLES_CHANGED": "Gardez exactement les variables {{…}} du texte d'origine.",
+      "ROLE_ASSIGNMENT_EXISTS": "Cette personne a déjà ce rôle.",
+      "ROLE_NOT_GRANTABLE": "Vous ne pouvez pas donner ce rôle.",
+      "PERMISSION_NOT_ADJUSTABLE": "Ce droit ne peut pas être modifié."
+    }
+  },
+  "login": {
+    "title": "Connexion",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "forgot": "Mot de passe oublié ?",
+    "resendVerification": "Recevoir un nouveau lien de confirmation",
+    "phoneCountry": "Pays et indicatif"
+  },
+  "invitation": {
+    "greeting": "Bonjour {{name}}",
+    "intro": "Choisissez votre mot de passe pour le compte {{email}}. Il vous servira à vous connecter.",
+    "submit": "Enregistrer mon mot de passe"
+  },
+  "session": {
+    "logout": "Se déconnecter",
+    "greeting": "Bonjour {{name}}"
+  },
+  "validation": {
+    "email": "Saisissez votre adresse e-mail.",
+    "emailInvalid": "Cette adresse e-mail n'est pas valide.",
+    "password": "Saisissez votre mot de passe.",
+    "passwordTooShort": "Au moins 8 caractères.",
+    "passwordTooLong": "Au plus 128 caractères.",
+    "passwordMismatch": "Les deux mots de passe ne sont pas identiques.",
+    "phone": "Saisissez votre numéro de téléphone.",
+    "phoneInvalid": "Ce numéro de mobile n'est pas valide pour ce pays.",
+    "required": "Obligatoire."
+  },
+  "password": {
+    "new": "Nouveau mot de passe",
+    "confirm": "Confirmez le mot de passe",
+    "rules": "Au moins 8 caractères. Une petite phrase facile à retenir convient très bien.",
+    "show": "Afficher le mot de passe",
+    "hide": "Masquer le mot de passe"
+  },
+  "forgot": {
+    "title": "Mot de passe oublié",
+    "intro": "Saisissez votre adresse e-mail. Vous recevrez un lien pour choisir un nouveau mot de passe.",
+    "submit": "Recevoir le lien",
+    "sent": "Si un compte correspond à cette adresse, un e-mail vient de partir. Le lien est valable une heure."
+  },
+  "reset": {
+    "title": "Nouveau mot de passe",
+    "submit": "Enregistrer",
+    "done": "Votre mot de passe a été changé. Vous avez été déconnecté de vos appareils : connectez-vous avec le nouveau mot de passe."
+  },
+  "verify": {
+    "title": "Confirmer mon adresse e-mail",
+    "done": "Votre adresse e-mail est confirmée. Vous pouvez vous connecter.",
+    "intro": "Saisissez votre adresse e-mail pour recevoir un nouveau lien de confirmation.",
+    "submit": "Recevoir un nouveau lien",
+    "sent": "Si un compte attend sa confirmation, un e-mail vient de partir. Le lien est valable 48 heures."
+  },
+  "links": {
+    "checking": "Vérification du lien…",
+    "missing": "Lien incomplet. Ouvrez le lien reçu en entier.",
+    "backToLogin": "Retour à la connexion"
+  },
+  "altcha": {
+    "label": "Vérification anti-robot",
+    "verifying": "Vérification en cours…",
+    "verified": "Vérifié",
+    "error": "Échec de la vérification. Rechargez la page.",
+    "expired": "Vérification expirée. Rechargez la page.",
+    "failedHelp": "La vérification anti-robot n'a pas abouti. Vérifiez votre connexion, puis rechargez la page."
+  },
+  "common": {
+    "active": "Active",
+    "inactive": "Désactivée",
+    "save": "Enregistrer",
+    "search": "Rechercher",
+    "loading": "Chargement…"
+  },
+  "person": {
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "name": "Nom",
+    "phone": "Téléphone mobile",
+    "language": "Langue"
+  },
+  "nav": {
+    "admin": "Administration de la plateforme",
+    "adminOrganizations": "Organisations",
+    "adminZones": "Zones provisoires",
+    "adminCategories": "Catégories par défaut",
+    "adminTexts": "Textes",
+    "adminSupport": "Accès support",
+    "sites": "Résidences",
+    "site": "Résidence et bâtiments",
+    "categories": "Catégories de biens",
+    "people": "Personnes et rôles",
+    "units": "Biens",
+    "requests": "Demandes d'accès",
+    "preRegistrations": "Pré-inscriptions",
+    "qr": "QR code d'inscription",
+    "myAccesses": "Mes résidences"
+  },
+  "registration": {
+    "title": "Inscription à votre résidence",
+    "intro": "Saisissez le code affiché sous le QR code de votre résidence.",
+    "site": "Résidence {{siteName}} ({{organizationName}})",
+    "code": "Code de la résidence",
+    "comment": "Commentaire pour le gestionnaire",
+    "commentHint": "Par exemple : Appartement B12, propriétaire ; parking P3.",
+    "key": "Clé personnelle (si vous en avez reçu une)",
+    "keyHint": "Avec la clé et l'e-mail prévu, votre accès est validé tout de suite.",
+    "submit": "Envoyer mon inscription",
+    "doneTitle": "Consultez vos e-mails",
+    "done": "Nous vous avons envoyé un e-mail. Ouvrez le lien pour confirmer votre adresse : votre demande arrive alors au gestionnaire.",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "signInAndJoin": "Connectez-vous et rejoignez cette résidence"
+  },
+  "access": {
+    "title": "Mes résidences",
+    "intro": "Vos accès et vos biens. Une demande en attente ne montre rien tant que le gestionnaire ne l'a pas validée.",
+    "none": "Aucune résidence pour l'instant.",
+    "joinTitle": "Rejoindre une autre résidence",
+    "join": "Envoyer ma demande",
+    "joinedPending": "Demande envoyée. Le gestionnaire va décider.",
+    "joinedActive": "Votre clé a été reconnue : votre accès est ouvert."
+  },
+  "membershipStatus": {
+    "PENDING": "En attente",
+    "ACTIVE": "Actif",
+    "REJECTED": "Refusé",
+    "DEACTIVATED": "Terminé"
+  },
+  "unitType": {
+    "APARTMENT": "Appartement",
+    "SHOP": "Magasin",
+    "PARKING": "Parking",
+    "STORAGE": "Cave",
+    "OTHER": "Autre"
+  },
+  "occupancyRole": {
+    "OWNER": "Propriétaire",
+    "TENANT": "Locataire"
+  },
+  "keyOutcome": {
+    "MATCHED": "Clé reconnue",
+    "MATCHED_NEEDS_REVIEW": "Clé reconnue, un bien est pris",
+    "NOT_MATCHED": "Clé non reconnue",
+    "NONE": "Sans clé"
+  },
+  "requests": {
+    "title": "Demandes d'accès et résidents",
+    "intro": "Lisez le commentaire, choisissez les biens de la personne et validez, ou refusez.",
+    "tab": {
+      "PENDING": "En attente",
+      "ACTIVE": "Résidents",
+      "REJECTED": "Refusées"
+    },
+    "none": "Rien ici.",
+    "noComment": "Aucun commentaire.",
+    "approve": "Valider avec ces biens",
+    "reject": "Refuser",
+    "reason": "Motif (facultatif)"
+  },
+  "units": {
+    "search": "Chercher un bien par sa référence",
+    "role": "Rôle",
+    "chosen": "{{count}} bien(s) choisi(s)",
+    "title": "Biens",
+    "count": "{{count}} biens",
+    "reference": "Référence",
+    "type": "Type",
+    "category": "Catégorie",
+    "floor": "Étage",
+    "createTitle": "Ajouter un bien",
+    "create": "Ajouter"
+  },
+  "import": {
+    "unitsTitle": "Importer des biens depuis Excel",
+    "unitsIntro": "Téléchargez le modèle, remplissez une ligne par bien, puis envoyez-le. Rien n'est créé si une ligne contient une erreur.",
+    "residentsTitle": "Importer des résidents depuis Excel",
+    "residentsIntro": "Une ligne par bien prévu. Chaque personne reçoit une clé personnelle, affichée une seule fois.",
+    "template": "Télécharger le modèle",
+    "file": "Fichier Excel (.xlsx)",
+    "dryRun": "Vérifier seulement le fichier",
+    "send": "Envoyer le fichier",
+    "row": "Ligne",
+    "column": "Colonne",
+    "error": "Problème",
+    "value": "Valeur",
+    "outcome": {
+      "CHECKED": "{{total}} lignes vérifiées, aucune erreur. Décochez « vérifier seulement » pour importer.",
+      "IMPORTED": "{{created}} créés à partir de {{total}} lignes.",
+      "REJECTED": "Rien n'a été créé : corrigez les lignes ci-dessous et envoyez de nouveau."
+    },
+    "columns": {
+      "reference": "Référence",
+      "type": "Type",
+      "category": "Catégorie",
+      "building": "Bâtiment",
+      "outdoorArea": "Espace extérieur",
+      "floor": "Étage",
+      "annexOf": "Annexe de",
+      "saleable": "Vendable",
+      "rentable": "Louable",
+      "lastName": "Nom",
+      "firstName": "Prénom",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "language": "Langue",
+      "unit": "Bien",
+      "role": "Rôle",
+      "primaryTenant": "Locataire principal"
+    }
+  },
+  "pre": {
+    "title": "Pré-inscriptions",
+    "intro": "Préparez l'arrivée d'une personne avec ses biens : elle s'inscrit avec le QR code et sa clé, et elle est validée aussitôt.",
+    "createTitle": "Pré-inscrire une personne",
+    "create": "Créer la clé",
+    "days": "Clé valable (jours)",
+    "listTitle": "Personnes pré-inscrites",
+    "none": "Aucune pré-inscription.",
+    "units": "Biens",
+    "status": "État",
+    "key": "Clé",
+    "expires": "Valable jusqu'au",
+    "keysTitle": "Clés à transmettre",
+    "keysOnce": "Ces clés ne sont affichées que maintenant. Imprimez-les ou téléchargez-les avant de quitter la page.",
+    "printKeys": "Imprimer",
+    "downloadKeys": "Télécharger (CSV)",
+    "keysDone": "Je les ai conservées",
+    "renew": "Nouvelle clé",
+    "cancel": "Annuler",
+    "cancelConfirm": "Annuler cette pré-inscription ? Sa clé ne marchera plus."
+  },
+  "preStatus": {
+    "PENDING": "En attente",
+    "USED": "Utilisée",
+    "CANCELLED": "Annulée",
+    "EXPIRED": "Expirée"
+  },
+  "qr": {
+    "title": "QR code d'inscription",
+    "intro": "Imprimez-le à l'entrée : les résidents le scannent pour s'inscrire.",
+    "imageLabel": "QR code de la résidence",
+    "enabled": "Inscription ouverte",
+    "disabled": "Inscription fermée",
+    "enable": "Ouvrir l'inscription",
+    "disable": "Fermer l'inscription",
+    "enabledNotice": "L'inscription est de nouveau ouverte.",
+    "disabledNotice": "L'inscription est fermée : le code ne marche plus.",
+    "downloadSvg": "Télécharger (SVG)",
+    "downloadPng": "Télécharger (PNG)",
+    "print": "Imprimer",
+    "rotate": "Remplacer le code",
+    "rotateConfirm": "Remplacer le code ? Celui déjà imprimé cessera aussitôt de fonctionner.",
+    "rotated": "Nouveau code créé. Imprimez-le de nouveau.",
+    "printInstruction": "Scannez ce code avec votre téléphone pour vous inscrire à la résidence."
+  },
+  "sites": {
+    "title": "Résidences",
+    "none": "Aucune résidence pour l'instant.",
+    "createTitle": "Ajouter une résidence",
+    "name": "Nom de la résidence",
+    "addressLine": "Adresse",
+    "create": "Ajouter la résidence"
+  },
+  "zones": {
+    "upper": "Wilaya",
+    "attachment": "Commune",
+    "provisional": "provisoire",
+    "missing": "Commune absente de la liste",
+    "createProvisional": "L'ajouter comme provisoire"
+  },
+  "buildings": {
+    "title": "Bâtiments",
+    "name": "Bâtiment",
+    "floors": "Étages",
+    "address": "Adresse",
+    "add": "Ajouter le bâtiment"
+  },
+  "addressOrigin": {
+    "SITE_COPY": "copie de celle de la résidence",
+    "OWN": "propre"
+  },
+  "categories": {
+    "title": "Catégories de biens",
+    "intro": "Les typologies par défaut et vos propres catégories.",
+    "addTitle": "Ajouter une catégorie",
+    "add": "Ajouter",
+    "code": "Code",
+    "codeHint": "Majuscules et chiffres, par exemple T6 ou GRAND_MAGASIN.",
+    "name": "Nom"
+  },
+  "scope": {
+    "PLATFORM": "par défaut",
+    "ORGANIZATION": "la vôtre",
+    "SITE": "cette résidence"
+  },
+  "people": {
+    "title": "Personnes et rôles",
+    "intro": "Donnez le rôle de gestionnaire sur une résidence et choisissez les droits de chaque rôle. Un changement s'applique tout de suite et figure au journal.",
+    "inviteManager": "Ajouter un gestionnaire",
+    "site": "Résidence",
+    "invite": "Inviter",
+    "roles": "Rôles",
+    "account": "Compte",
+    "customized": "Modifié dans votre organisation",
+    "sensitive": "sensible",
+    "changed": "modifié",
+    "resetDefaults": "Valeurs par défaut"
+  },
+  "roles": {
+    "ORG_ADMIN": "Promoteur",
+    "SITE_MANAGER": "Gestionnaire",
+    "TECHNICIAN": "Technicien",
+    "RESIDENT": "Résident",
+    "PLATFORM_ADMIN": "Administrateur de la plateforme"
+  },
+  "accountStatus": {
+    "ACTIVE": "Actif",
+    "INVITED": "Invité",
+    "PENDING_VERIFICATION": "E-mail non confirmé",
+    "DEACTIVATED": "Désactivé"
+  },
+  "organizationType": {
+    "PROPERTY_DEVELOPER": "Promoteur immobilier",
+    "RESIDENCE": "Résidence sans promoteur"
+  },
+  "adminOrganizations": {
+    "title": "Organisations",
+    "intro": "Les organisations clientes, leurs promoteurs et l'accès support.",
+    "createTitle": "Créer une organisation",
+    "name": "Nom",
+    "type": "Type",
+    "create": "Créer et inviter le promoteur",
+    "counts": "{{sites}} résidence(s), {{owners}} promoteur(s)",
+    "reason": "Motif",
+    "reasonHint": "Obligatoire : pour une désactivation, et pour un accès support (10 caractères au moins, par exemple le numéro du ticket).",
+    "deactivate": "Désactiver",
+    "reactivate": "Réactiver",
+    "inviteOwner": "Inviter un autre promoteur",
+    "sendInvitation": "Envoyer l'invitation"
+  },
+  "support": {
+    "title": "Accès support",
+    "intro": "Chaque accès aux données d'une organisation, avec son motif. Chaque action faite pendant l'accès figure au journal avec la session.",
+    "open": "Ouvrir un accès support (1 heure)",
+    "opened": "Accès support ouvert pour une heure. Allez à l'accueil pour travailler dans cette organisation.",
+    "banner": "Accès support : {{organization}}, jusqu'à {{until}}. Chaque action est journalisée.",
+    "end": "Terminer l'accès",
+    "organization": "Organisation",
+    "administrator": "Administrateur",
+    "reason": "Motif",
+    "status": "État"
+  },
+  "supportStatus": {
+    "OPEN": "Ouvert",
+    "ENDED": "Terminé",
+    "EXPIRED": "Expiré"
+  },
+  "adminZones": {
+    "title": "Zones provisoires",
+    "intro": "Communes créées par les promoteurs : validez-les avec leur code officiel, ou fusionnez-les dans la bonne commune.",
+    "none": "Aucune zone provisoire en attente.",
+    "details": "Sous {{parent}} · créée par {{organization}} · {{addresses}} adresse(s)",
+    "code": "Code officiel",
+    "validate": "Valider",
+    "target": "Fusionner dans",
+    "merge": "Fusionner",
+    "mergeConfirm": "Fusionner ? Ses adresses passent dans la commune choisie."
+  },
+  "adminCategories": {
+    "title": "Catégories de biens par défaut",
+    "intro": "Proposées à toutes les organisations."
+  },
+  "texts": {
+    "title": "Textes de l'application",
+    "intro": "Un texte enregistré est visible tout de suite, sans nouvelle version. Une nouvelle version ne l'écrase jamais.",
+    "missingIn": "Manquant en",
+    "editedOnly": "Textes modifiés seulement",
+    "history": "Historique",
+    "missing": "manquant",
+    "release": "Version livrée",
+    "restore": "Rétablir"
+  },
+  "textOrigin": {
+    "SEED": "livré",
+    "EDITED": "modifié"
+  },
+  "notifications": {
+    "bell": "Notifications, {{count}} non lues",
+    "none": "Aucune notification.",
+    "readAll": "Tout marquer comme lu",
+    "templates": {
+      "ACCESS_REQUESTED": "{{personName}} demande un accès à {{siteName}}.",
+      "ACCESS_AUTO_APPROVED": "{{personName}} a rejoint {{siteName}} avec sa clé.",
+      "ACCESS_APPROVED": "Votre accès à {{siteName}} est ouvert.",
+      "ACCESS_REJECTED": "Votre demande pour {{siteName}} a été refusée."
+    }
+  }
+}

@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Tokens shared with the architecture pages. Logical utilities (ms-, me-, ps-, pe-, start-, end-) only:
+   the same markup must work left-to-right (French) and right-to-left (Arabic). */
+@theme {
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --color-brand: #1d6c75;
+  --color-brand-soft: #dcecee;
+  --color-ground: #f4f6f5;
+  --color-surface: #ffffff;
+  --color-ink: #1b2124;
+  --color-muted: #59646c;
+  --color-line: #d7ddda;
+}
+
+:root[dir="rtl"] {
+  --font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", system-ui, sans-serif;
+}
+
+body {
+  @apply bg-ground text-ink font-sans antialiased;
+}

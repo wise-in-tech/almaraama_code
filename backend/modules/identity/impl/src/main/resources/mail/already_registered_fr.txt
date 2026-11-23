@@ -1,0 +1,12 @@
+Subject: Vous avez déjà un compte almaraama
+
+Bonjour {{firstName}},
+
+Quelqu'un vient de demander une inscription à une résidence avec votre adresse e-mail. Vous avez déjà un compte almaraama : aucune nouvelle inscription n'a été enregistrée.
+
+Si c'est vous : connectez-vous sur {{appUrl}}, puis scannez de nouveau le QR code de la résidence pour demander l'accès. Mot de passe oublié ? Utilisez « Mot de passe oublié » sur l'écran de connexion.
+
+Si ce n'est pas vous, ignorez cet e-mail : rien n'a changé sur votre compte.
+
+-- 
+almaraama

@@ -1,0 +1,12 @@
+Subject: You already have an almaraama account
+
+Hello {{firstName}},
+
+Someone just asked to register to a residence with your e-mail address. You already have an almaraama account: no new registration was recorded.
+
+If this was you: sign in at {{appUrl}}, then scan the residence's QR code again to ask for access. Forgot your password? Use "Forgot password" on the sign-in screen.
+
+If this was not you, ignore this e-mail: nothing changed on your account.
+
+-- 
+almaraama

@@ -1,0 +1,155 @@
+# Default configuration. Secrets are never stored here: they come from the environment (see ../.env.example).
+spring:
+  application:
+    name: almaraama
+  threads:
+    virtual:
+      enabled: true
+  autoconfigure:
+    # No default in-memory user with a generated password: identity is ours (ADR-004).
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+
+  servlet:
+    multipart:
+      # Excel imports (ADR-027): 2 MB per file; the file is read in memory, never written to disk by us.
+      max-file-size: 2MB
+      max-request-size: 3MB
+
+  datasource:
+    # Application role: SELECT, INSERT, UPDATE only. No DELETE on business tables (M2).
+    url: ${ALMARAAMA_DB_URL:jdbc:postgresql://localhost:5432/almaraama}
+    username: ${ALMARAAMA_DB_APP_USER:almaraama_app}
+    password: ${ALMARAAMA_DB_APP_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+          # Imports insert their rows in batches (ADR-027, criterion 1).
+          batch_size: 50
+        order_inserts: true
+
+  flyway:
+    # Migrations run under their own role, which owns the schemas (security baseline).
+    # In tests the container user is used instead (see the test configuration).
+    user: ${ALMARAAMA_DB_MIGRATOR_USER:almaraama_migrator}
+    password: ${ALMARAAMA_DB_MIGRATOR_PASSWORD:}
+    # Flyway history and the outbox live in "platform". Each module creates its own schema (CF-3) in its own
+    # migrations, shipped in its impl jar under db/migration/<module>/ and found by scanning db/migration.
+    default-schema: platform
+    schemas:
+      - platform
+    locations:
+      - classpath:db/migration
+    placeholders:
+      app-role: ${ALMARAAMA_DB_APP_USER:almaraama_app}
+
+  modulith:
+    events:
+      # Outbox (CF-6). Table created by Flyway in schema "platform", not by Modulith.
+      jdbc:
+        schema: platform
+        schema-initialization:
+          enabled: false
+      republish-outstanding-events-on-restart: true
+
+  mvc:
+    problemdetails:
+      # Problems are built by our own handler, with the contract's stable error codes (ProblemHandler).
+      enabled: false
+
+server:
+  port: 8080
+  # The contract's server is /api (api/openapi.yaml): the proxy and the dev server forward /api unchanged.
+  servlet:
+    context-path: /api
+  shutdown: graceful
+  forward-headers-strategy: framework
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+    include-exception: false
+
+management:
+  # Actuator lives on its own port, never published outside the host or routed by the proxy.
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    # A relay that is down must not take the platform out of the load balancer: e-mails have their own retry.
+    mail:
+      enabled: false
+
+almaraama:
+  # Base URL of the web application, used in join links.
+  frontend-url: ${ALMARAAMA_FRONTEND_URL:http://localhost:5173}
+  # Our team's accounts (ADR-026): a secret file with one e-mail per line. Empty: none.
+  platform-admin-emails-file: ${ALMARAAMA_PLATFORM_ADMIN_EMAILS_FILE:}
+  identity:
+    access-token-ttl: 10m
+    refresh-token-ttl: 30d
+    # Account links (ADR-030): "set my password" (D4), e-mail verification (D1), password reset (D5).
+    invitation-ttl: 7d
+    email-verification-ttl: 48h
+    password-reset-ttl: 1h
+    # Account e-mails of one kind per person and per hour (ADR-031).
+    emails-per-hour: 3
+    # Public address of the web application in the links; never taken from the request (ADR-030).
+    link-base-url: ${ALMARAAMA_MAIL_LINK_BASE_URL:http://localhost:5173}
+    # Country assumed for a phone number typed without its international prefix (ADR-028).
+    default-phone-region: DZ
+    jwt:
+      issuer: almaraama
+      # RSA private key (PKCS#8 PEM) mounted as a secret file, never in the image or the repository.
+      private-key-location: ${ALMARAAMA_JWT_PRIVATE_KEY_FILE:}
+      allow-ephemeral-key: false
+  security:
+    # Public requests (sign-in, account links, ALTCHA challenges) per client address and per minute; the proxy limits
+    # them too.
+    auth-requests-per-minute: 20
+  # Account e-mails (ADR-031): SMTP relay of the host in Algeria or our Postfix; Mailpit in development.
+  mail:
+    from: ${ALMARAAMA_MAIL_FROM:no-reply@almaraama.local}
+    smtp:
+      host: ${ALMARAAMA_SMTP_HOST:localhost}
+      port: ${ALMARAAMA_SMTP_PORT:1025}
+      username: ${ALMARAAMA_SMTP_USERNAME:}
+      password-file: ${ALMARAAMA_SMTP_PASSWORD_FILE:}
+      starttls-required: ${ALMARAAMA_SMTP_STARTTLS_REQUIRED:true}
+  # Anti-robot proof of work on the public forms that send an e-mail (ADR-032).
+  altcha:
+    hmac-key-file: ${ALMARAAMA_ALTCHA_HMAC_KEY_FILE:}
+    allow-ephemeral-key: false
+    max-number: 100000
+    challenge-ttl: 10m
+
+springdoc:
+  api-docs:
+    # Descriptive OpenAPI is a P1 goal, but it is only published where explicitly enabled.
+    enabled: ${ALMARAAMA_OPENAPI_ENABLED:false}
+
+# Technical logs and debug mode (ADR-033). ONE switch: ALMARAAMA_LOG_LEVEL = INFO (default), DEBUG or TRACE.
+# It sets the level of the "almaraama" group: our code, SQL statements without their values, the event outbox and
+# Flyway. Bound values (org.hibernate.orm.jdbc.bind) stay off at every level: they would hold e-mails and hashes.
+logging:
+  group:
+    almaraama: com.almaraama, org.hibernate.SQL, org.springframework.modulith.events, org.flywaydb
+  level:
+    root: INFO
+    almaraama: ${ALMARAAMA_LOG_LEVEL:INFO}
+    org.hibernate.orm.jdbc.bind: OFF

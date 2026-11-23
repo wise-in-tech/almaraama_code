@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+# Generated from ../api/openapi.yaml by `pnpm gen:api` (every dev, build and typecheck run regenerates it).
+src/shared/api/schema.d.ts

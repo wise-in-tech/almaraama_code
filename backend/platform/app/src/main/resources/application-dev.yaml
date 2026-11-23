@@ -1,0 +1,37 @@
+# Local development only (SPRING_PROFILES_ACTIVE=dev). Never used in staging or production.
+spring:
+  flyway:
+    # Development test data (zones, unit categories) until the official reference lists (decision of 20 November).
+    locations:
+      - classpath:db/migration
+      - classpath:db/dev
+
+almaraama:
+  identity:
+    jwt:
+      # Throwaway signing key when no file is given: sessions end at each restart.
+      allow-ephemeral-key: true
+  altcha:
+    # Throwaway HMAC key when no file is given: challenges issued before a restart stop working.
+    allow-ephemeral-key: true
+  mail:
+    smtp:
+      # Mailpit (compose service "mailpit"): every e-mail is caught and shown on http://127.0.0.1:8025.
+      host: ${ALMARAAMA_SMTP_HOST:localhost}
+      port: ${ALMARAAMA_SMTP_PORT:1025}
+      starttls-required: false
+  dev:
+    # Set ALMARAAMA_DEV_INVITE_EMAIL to get, at start-up, a platform admin who owns a demo organization; the
+    # "set my password" e-mail arrives in Mailpit while the account has no password yet.
+    invite-email: ${ALMARAAMA_DEV_INVITE_EMAIL:}
+    invite-phone: ${ALMARAAMA_DEV_INVITE_PHONE:+213661234567}
+    frontend-url: http://localhost:5173
+
+springdoc:
+  api-docs:
+    enabled: true
+
+logging:
+  level:
+    # Debug mode by default in development (ADR-033); ALMARAAMA_LOG_LEVEL still wins.
+    almaraama: ${ALMARAAMA_LOG_LEVEL:DEBUG}
