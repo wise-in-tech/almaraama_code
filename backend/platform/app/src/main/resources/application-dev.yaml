@@ -14,6 +14,10 @@ almaraama:
   altcha:
     # Throwaway HMAC key when no file is given: challenges issued before a restart stop working.
     allow-ephemeral-key: true
+  files:
+    # Local directory and throwaway link key: links issued before a restart stop working.
+    directory: ${ALMARAAMA_FILES_DIR:${java.io.tmpdir}/almaraama-files}
+    allow-ephemeral-key: true
   mail:
     smtp:
       # Mailpit (compose service "mailpit"): every e-mail is caught and shown on http://127.0.0.1:8025.

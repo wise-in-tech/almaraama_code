@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: almaraama API
-  version: 0.5.0
+  version: 0.6.1
   description: |
     Public API of the almaraama platform.
 
@@ -39,6 +39,14 @@ info:
 
     **Texts (ADR-029, sprint 2):** the interface texts are a dictionary the administrators edit without deployment;
     `GET /v1/texts/{language}` is public and supports `ETag` / `If-None-Match`.
+
+    **Equipment, files and tickets (sprint 3, ADR-036 to ADR-039):** equipment belongs to a family and a model
+    and carries a QR code that opens a prefilled ticket form (G1 to G4). Files are uploaded first, checked by their
+    content, photos re-encoded; they are read through signed links valid 5 minutes, built by the owning endpoint
+    after its own visibility check. A ticket follows its organization's circuit (data, versioned); the client's
+    options (auto-close, requester validation, labels) apply at once. Ticket visibility comes from relationships
+    (requester, occupant of the unit, member of the site for common tickets, assigned technician) widened by
+    `ticket:read` and `ticket:read-private` (ADR-037).
 
     **Support (ADR-033):** every response carries an `X-Request-Id` header, also present in error bodies as
     `requestId`. Quote it to find the request in the logs.
@@ -82,6 +90,14 @@ tags:
     description: Text dictionary of the interface (M6, ADR-029).
   - name: admin
     description: Back-office of the platform administrators (C12, ADR-035).
+  - name: files
+    description: Upload of photos and documents, reading through signed links (ADR-038).
+  - name: assets
+    description: Equipment families and models, equipment, suppliers, documents, warranties, QR codes (G1 to G4).
+  - name: tickets
+    description: Issue categories and types, routing, tickets, their steps and history (H1 to H10).
+  - name: workflow
+    description: Ticket circuit of each client (H5, ADR-036).
 
 paths:
   /v1/invitations/inspect:
@@ -3587,6 +3603,1787 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  # =====================================================================================================
+  # Sprint 3: files (ADR-038)
+  # =====================================================================================================
+
+  /v1/files:
+    post:
+      tags: [files]
+      operationId: uploadFile
+      summary: Upload a ticket photo or an equipment document (H10, G3, ADR-038)
+      description: |
+        Requires a session and at least one site in the caller's perimeter; at most 30 uploads per minute per person.
+        The type is detected from the content (JPEG, PNG, PDF), never from the name or the declared type. Photos are
+        re-encoded as JPEG (at most 2,048 pixels, metadata such as the GPS position removed); PDF files are kept as
+        they are and never interpreted by the server. The application shrinks photos before sending them.
+
+        The returned file can be used **once**, **by the uploader only**, within **24 hours**, for its `purpose`
+        (`FILE_NOT_USABLE` otherwise): the owning endpoint (ticket, equipment) attaches it after checking its own
+        permissions. There is no "give me a link" endpoint: links come inside the owner's responses.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, purpose]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                purpose:
+                  $ref: '#/components/schemas/FilePurpose'
+      responses:
+        '201':
+          description: Stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadedFile'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '413':
+          description: |
+            Larger than allowed for the purpose (`TOO_LARGE`: 8 MB for a photo, 10 MB for a document), or an image
+            above 40 megapixels or 10,000 pixels on a side (`IMAGE_TOO_LARGE`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          description: Content not accepted for this purpose, or unreadable image (`UNSUPPORTED_CONTENT`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /v1/files/{fileId}/content:
+    parameters:
+      - $ref: '#/components/parameters/FileId'
+    get:
+      tags: [files]
+      operationId: downloadFile
+      summary: Read a file through a signed link (ADR-038)
+      description: |
+        Public: the signature protects the file, so that an `<img>` tag works without the access token. Links are
+        built by the owning endpoints (ticket photos, equipment documents) after their own visibility check, and
+        are valid **5 minutes**. A wrong or expired signature gives `404`. Images are served `inline`, PDF files as
+        `attachment`; responses carry `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and
+        `Cache-Control: private, max-age=300`.
+      security: []
+      parameters:
+        - name: expires
+          in: query
+          required: true
+          description: Expiry, in seconds since 1970.
+          schema:
+            type: integer
+            format: int64
+        - name: signature
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{43}$'
+      responses:
+        '200':
+          description: The file.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =====================================================================================================
+  # Sprint 3: equipment (G1 to G4, ADR-039)
+  # =====================================================================================================
+
+  /v1/organizations/{organizationId}/asset-families:
+    parameters:
+      - $ref: '#/components/parameters/OrganizationId'
+    get:
+      tags: [assets]
+      operationId: listAssetFamilies
+      summary: Equipment families and their models usable by an organization (G1, M7)
+      description: |
+        Requires `asset:read` on the organization or on one of its sites. The platform defaults first, then the
+        organization's own families. Each family lists its models.
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Families by sort order, with their models.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssetFamily'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [assets]
+      operationId: createAssetFamily
+      summary: Add a family for the organization (G1, M7)
+      description: |
+        Requires `asset:create` on the organization or on one of its sites (the manager completes the defaults, G1).
+        The family is visible only to this organization.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetFamilyInput'
+      responses:
+        '201':
+          description: Family created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetFamily'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Another family visible to the organization has this code (`ASSET_FAMILY_CODE_TAKEN`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/admin/asset-families:
+    get:
+      tags: [admin, assets]
+      operationId: listPlatformAssetFamilies
+      summary: Default equipment families of the platform (G1, M7)
+      description: Requires `reference-data:read` on the platform.
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Families with their models.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssetFamily'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+    post:
+      tags: [admin, assets]
+      operationId: createPlatformAssetFamily
+      summary: Add a default family offered to every organization (G1, M7)
+      description: Requires `reference-data:create` on the platform.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetFamilyInput'
+      responses:
+        '201':
+          description: Family created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetFamily'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '409':
+          description: '`ASSET_FAMILY_CODE_TAKEN`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/asset-families/{familyId}:
+    parameters:
+      - $ref: '#/components/parameters/AssetFamilyId'
+    put:
+      tags: [assets]
+      operationId: updateAssetFamily
+      summary: Rename, reorder or archive a family
+      description: |
+        A platform family needs `reference-data:update` (and `reference-data:archive` to archive); an organization's
+        family needs `asset:update` (and `asset:archive`) on the organization or one of its sites. The code cannot
+        change. An archived family stays on its equipment but cannot be given to new equipment (M2).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssetFamilyRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetFamily'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+
+  /v1/asset-families/{familyId}/models:
+    parameters:
+      - $ref: '#/components/parameters/AssetFamilyId'
+    post:
+      tags: [assets]
+      operationId: createAssetModel
+      summary: Add a model to a family (G1)
+      description: |
+        Same permissions as changing the family. An organization may add its own models to a platform family with
+        `asset:create`: such a model is visible only to that organization.
+      parameters:
+        - name: organizationId
+          in: query
+          description: Required when an organization adds a model to a platform family.
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetModelInput'
+      responses:
+        '201':
+          description: Model created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetModel'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The family already has a model with this name and version (`ASSET_MODEL_TAKEN`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/asset-models/{modelId}:
+    parameters:
+      - $ref: '#/components/parameters/AssetModelId'
+    put:
+      tags: [assets]
+      operationId: updateAssetModel
+      summary: Rename or archive a model
+      description: Same permissions as for its owner (platform or organization).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssetModelRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetModel'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+
+  /v1/asset-families/{familyId}/attributes:
+    parameters:
+      - $ref: '#/components/parameters/AssetFamilyId'
+    get:
+      tags: [assets]
+      operationId: listAssetAttributeDefinitions
+      summary: Characteristics defined for a family (G3, ADR-039)
+      description: |
+        Requires `asset:read` on the organization or one of its sites (or `reference-data:read` without
+        `organizationId`). The platform's definitions, then the organization's. Used by the "Caractéristiques" block.
+      parameters:
+        - name: organizationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Definitions by sort order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttributeDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [assets]
+      operationId: createAssetAttributeDefinition
+      summary: Define a characteristic for a family (G3, ADR-039)
+      description: |
+        Scope `PLATFORM` needs `reference-data:create`; scope `ORGANIZATION` needs `asset:update` on the
+        organization or one of its sites. The code and the data type cannot change later.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeDefinitionInput'
+      responses:
+        '201':
+          description: Definition created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeDefinition'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The family already has a characteristic with this code (`ATTRIBUTE_CODE_TAKEN`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/attribute-definitions/{definitionId}:
+    parameters:
+      - $ref: '#/components/parameters/AttributeDefinitionId'
+    put:
+      tags: [assets]
+      operationId: updateAttributeDefinition
+      summary: Change the labels, options, order or state of a characteristic
+      description: |
+        Same permissions as for its scope. Archiving keeps the values already stored but hides the field. A list
+        option already used cannot be removed, only archived.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAttributeDefinitionRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeDefinition'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+
+  /v1/organizations/{organizationId}/suppliers:
+    parameters:
+      - $ref: '#/components/parameters/OrganizationId'
+    get:
+      tags: [assets]
+      operationId: listSuppliers
+      summary: Supplier contacts of an organization (G3)
+      description: Requires `asset:update` on the organization or one of its sites (management view, ADR-039).
+      parameters:
+        - name: q
+          in: query
+          description: Part of the name or the activity.
+          schema:
+            type: string
+            maxLength: 100
+        - $ref: '#/components/parameters/IncludeInactive'
+      responses:
+        '200':
+          description: Suppliers by name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplier'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [assets]
+      operationId: createSupplier
+      summary: Add a reusable supplier contact (G3)
+      description: Requires `asset:create` on the organization or one of its sites.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierInput'
+      responses:
+        '201':
+          description: Supplier created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/PhoneRejected'
+
+  /v1/suppliers/{supplierId}:
+    parameters:
+      - $ref: '#/components/parameters/SupplierId'
+    put:
+      tags: [assets]
+      operationId: updateSupplier
+      summary: Change or deactivate a supplier contact
+      description: Requires `asset:update` on the organization or one of its sites. Never deleted (M2).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSupplierRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Supplier'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          $ref: '#/components/responses/PhoneRejected'
+
+  /v1/sites/{siteId}/assets:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [assets]
+      operationId: listAssets
+      summary: Equipment of a site (G2, C4)
+      description: |
+        Requires `asset:read` on the site. Residents see the resident view; with `asset:update` each item also
+        carries its QR code (for printing labels). Restricted residents see the equipment of their buildings and of
+        the common areas (C7).
+      parameters:
+        - name: buildingId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: outdoorAreaId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: familyId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: state
+          in: query
+          schema:
+            $ref: '#/components/schemas/AssetState'
+        - name: q
+          in: query
+          description: Part of the name or the reference.
+          schema:
+            type: string
+            maxLength: 100
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: One page of equipment, by family then reference.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetPage'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [assets]
+      operationId: createAsset
+      summary: Add an equipment to a site (G1 to G4)
+      description: |
+        Requires `asset:create` on the site. The family must be usable by the organization and active; the model,
+        when given, must belong to the family; the location must be in the site. The reference is generated when
+        absent. A QR code is created (G4). Characteristics are checked against the family's definitions.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetInput'
+      responses:
+        '201':
+          description: Equipment created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Another equipment of the site has this reference (`ASSET_REFERENCE_TAKEN`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          $ref: '#/components/responses/AssetRuleViolated'
+
+  /v1/assets/{assetId}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [assets]
+      operationId: getAsset
+      summary: An equipment (G3)
+      description: |
+        Requires `asset:read` on its site. `management` (supplier, documents with signed links, warranties,
+        characteristics, QR code) is present only with `asset:update` (ADR-039).
+      responses:
+        '200':
+          description: The equipment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [assets]
+      operationId: updateAsset
+      summary: Change an equipment
+      description: |
+        Requires `asset:update` on its site. Same checks as the creation. The family cannot change; the site cannot
+        change. Archiving is a separate endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssetRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          $ref: '#/components/responses/AssetRuleViolated'
+
+  /v1/assets/{assetId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    post:
+      tags: [assets]
+      operationId: archiveAsset
+      summary: Archive an equipment (M2)
+      description: |
+        Requires `asset:archive` on its site. The equipment stays in the history of its tickets; its QR code stops
+        answering; no new ticket can name it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionOnly'
+      responses:
+        '200':
+          description: Archived.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+
+  /v1/assets/{assetId}/qr-code/rotate:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    post:
+      tags: [assets]
+      operationId: rotateAssetQrCode
+      summary: Replace the QR code of an equipment (damaged or stolen label, G4)
+      description: Requires `asset:update` on its site. The old code stops answering at once.
+      responses:
+        '200':
+          description: New code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/assets/{assetId}/documents:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    post:
+      tags: [assets]
+      operationId: addAssetDocument
+      summary: Attach a document to an equipment (G3)
+      description: |
+        Requires `asset:update` on its site. `fileId` comes from `POST /v1/files` with purpose `ASSET_DOCUMENT`,
+        uploaded by the caller (`FILE_NOT_USABLE` otherwise).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetDocumentInput'
+      responses:
+        '201':
+          description: Attached. The whole equipment is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/FileNotUsable'
+
+  /v1/assets/{assetId}/documents/{documentId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+      - $ref: '#/components/parameters/DocumentId'
+    post:
+      tags: [assets]
+      operationId: archiveAssetDocument
+      summary: Hide a document of an equipment (M2)
+      description: Requires `asset:update` on its site. The file is kept.
+      responses:
+        '200':
+          description: Archived. The whole equipment is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/assets/{assetId}/warranties:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    post:
+      tags: [assets]
+      operationId: addWarranty
+      summary: Record a warranty of an equipment (G3)
+      description: |
+        Requires `asset:update` on its site. The end date must not be before the start date. The alert before
+        expiry is sent from sprint 4 (K4).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarrantyInput'
+      responses:
+        '201':
+          description: Recorded. The whole equipment is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/AssetRuleViolated'
+
+  /v1/assets/{assetId}/warranties/{warrantyId}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+      - $ref: '#/components/parameters/WarrantyId'
+    put:
+      tags: [assets]
+      operationId: updateWarranty
+      summary: Correct or archive a warranty
+      description: Requires `asset:update` on its site.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWarrantyRequest'
+      responses:
+        '200':
+          description: Updated. The whole equipment is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          $ref: '#/components/responses/AssetRuleViolated'
+
+  /v1/asset-qr/{code}:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[A-Z2-7]{26}$'
+    get:
+      tags: [assets]
+      operationId: resolveAssetQrCode
+      summary: The equipment behind a QR code label, to open the prefilled ticket form (G4, criterion 8)
+      description: |
+        Requires a session and `asset:read` on the equipment's site. An unknown code, a replaced code, an archived
+        equipment and an equipment outside the perimeter all give the same `404`.
+      responses:
+        '200':
+          description: The equipment (resident view).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetSummary'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /v1/sites/{siteId}/assets/import:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    post:
+      tags: [assets]
+      operationId: importAssets
+      summary: Import equipment from an Excel file (G1, G2, ADR-027 revision 3)
+      description: |
+        Requires `asset:create` on the site. Same file rules as the unit import (`.xlsx` from the template, 2 MB,
+        2,000 rows, type checked by content, never stored, all or nothing, `dryRun`). Families are matched by code,
+        models by name in the family, buildings, outdoor areas and suppliers by name; they must exist. Each equipment
+        gets its QR code.
+      parameters:
+        - name: dryRun
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: The file was read. `outcome` says whether equipment was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetImportReport'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: More than 2 MB or 2,000 rows (`IMPORT_FILE_TOO_LARGE`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '415':
+          description: Not an `.xlsx` file, or not built from the template (`IMPORT_FILE_INVALID`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/assets/import-template:
+    get:
+      tags: [assets]
+      operationId: downloadAssetImportTemplate
+      summary: Excel template for the equipment import (ADR-027 revision 3)
+      description: |
+        Requires `asset:create` on at least one site. Headers and help in the requested language; families, states,
+        and (with `siteId`) the site's buildings, outdoor areas and the organization's suppliers offered as lists.
+      parameters:
+        - name: language
+          in: query
+          schema:
+            $ref: '#/components/schemas/Language'
+        - name: siteId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The template.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+
+  # =====================================================================================================
+  # Sprint 3: issue categories and types, routing and visibility (H2, H3, H4, H8, ADR-037)
+  # =====================================================================================================
+
+  /v1/sites/{siteId}/issue-catalog:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [tickets]
+      operationId: getIssueCatalog
+      summary: What a person can report on this site, by category then type (H2, criterion 8)
+      description: |
+        Requires `issue-type:read` on the site. Only active categories and types, with the visibility that applies
+        on this site (H8). With `assetId`, only the types that fit the equipment's family. No routing details.
+      parameters:
+        - name: assetId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Categories with their types, by sort order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueCatalogCategory'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/organizations/{organizationId}/issue-categories:
+    parameters:
+      - $ref: '#/components/parameters/OrganizationId'
+    get:
+      tags: [tickets]
+      operationId: listIssueCategories
+      summary: Issue categories and types usable by an organization, for management (H2, M7)
+      description: |
+        Requires `issue-type:manage` on the organization or one of its sites. Platform defaults, then the
+        organization's own, with their types.
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Categories with their types.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueCategory'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [tickets]
+      operationId: createIssueCategory
+      summary: Add an issue category for the organization (M7)
+      description: Requires `issue-type:manage` on the organization or one of its sites.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueCategoryInput'
+      responses:
+        '201':
+          description: Category created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueCategory'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`ISSUE_CATEGORY_CODE_TAKEN`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/admin/issue-categories:
+    get:
+      tags: [admin, tickets]
+      operationId: listPlatformIssueCategories
+      summary: Default issue categories and types of the platform (H2, M7)
+      description: Requires `reference-data:read` on the platform.
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Categories with their types.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueCategory'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+    post:
+      tags: [admin, tickets]
+      operationId: createPlatformIssueCategory
+      summary: Add a default issue category (M7)
+      description: Requires `reference-data:create` on the platform.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueCategoryInput'
+      responses:
+        '201':
+          description: Category created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueCategory'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '409':
+          description: '`ISSUE_CATEGORY_CODE_TAKEN`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/issue-categories/{issueCategoryId}:
+    parameters:
+      - $ref: '#/components/parameters/IssueCategoryId'
+    put:
+      tags: [tickets]
+      operationId: updateIssueCategory
+      summary: Rename, reorder or archive an issue category
+      description: |
+        A platform category needs `reference-data:update` (`reference-data:archive` to archive); an organization's
+        category needs `issue-type:manage` on the organization or one of its sites.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIssueCategoryRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueCategory'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+
+  /v1/issue-categories/{issueCategoryId}/types:
+    parameters:
+      - $ref: '#/components/parameters/IssueCategoryId'
+    post:
+      tags: [tickets]
+      operationId: createIssueType
+      summary: Add an issue type to a category (H2, H3, H8)
+      description: |
+        Same permissions as changing the category. An organization may add its own types to a platform category
+        with `organizationId`: such a type is visible only to that organization.
+      parameters:
+        - name: organizationId
+          in: query
+          description: Required when an organization adds a type to a platform category.
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueTypeInput'
+      responses:
+        '201':
+          description: Type created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueType'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: '`ISSUE_TYPE_CODE_TAKEN`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/issue-types/{issueTypeId}:
+    parameters:
+      - $ref: '#/components/parameters/IssueTypeId'
+    put:
+      tags: [tickets]
+      operationId: updateIssueType
+      summary: Change an issue type (labels, equipment required, default visibility, families, order, state)
+      description: Same permissions as for its owner. The code and the category cannot change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIssueTypeRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueType'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+
+  /v1/sites/{siteId}/issue-type-configs:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [tickets]
+      operationId: listIssueTypeConfigs
+      summary: Routing and visibility of every issue type on a site (H4, H8)
+      description: |
+        Requires `issue-type:manage` on the site. One entry per active type usable by the organization; an entry
+        without `configured` uses the defaults (manager, type's visibility).
+      responses:
+        '200':
+          description: One entry per type, by category then type order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueTypeConfig'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/sites/{siteId}/issue-type-configs/{issueTypeId}:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+      - $ref: '#/components/parameters/IssueTypeId'
+    put:
+      tags: [tickets]
+      operationId: setIssueTypeConfig
+      summary: Set where tickets of a type go on this site and who sees them (H4, H8)
+      description: |
+        Requires `issue-type:manage` on the site. With `TECHNICIANS`, one to five designated people who can act on
+        tickets of the site (`ticket:update-status` there; `TECHNICIAN_NOT_ELIGIBLE` otherwise). Audited. New
+        tickets only: existing tickets keep their visibility and assignments.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueTypeConfigInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueTypeConfig'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          description: '`TECHNICIAN_NOT_ELIGIBLE` (with the person ids in `details`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/sites/{siteId}/eligible-technicians:
+    parameters:
+      - $ref: '#/components/parameters/SiteId'
+    get:
+      tags: [tickets]
+      operationId: listEligibleTechnicians
+      summary: People who can be designated for routing on this site (H4)
+      description: |
+        Requires `issue-type:manage` on the site. People with an active role on the site or its organization that
+        gives them `ticket:update-status` here, the managers included. The technician directory itself is sprint 4.
+      responses:
+        '200':
+          description: People by last name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PersonRef'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =====================================================================================================
+  # Sprint 3: tickets (H1 to H10, ADR-036, ADR-037)
+  # =====================================================================================================
+
+  /v1/tickets:
+    get:
+      tags: [tickets]
+      operationId: listTickets
+      summary: Tickets the caller can see (H8, C3, C4, M3, criteria 10 and 13)
+      description: |
+        Visibility (ADR-037): the caller's own tickets, the private tickets of the units they occupy, the common
+        tickets of the sites where they are a member (their buildings only, C7), the tickets they are assigned to,
+        and everything that `ticket:read` (common) and `ticket:read-private` (private) give on a scope. `view`
+        narrows it: `MINE` (asked by me), `COMMON` (common parts), `ALL` (everything I can see). Newest change first.
+      parameters:
+        - name: siteId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: view
+          in: query
+          schema:
+            type: string
+            enum: [ALL, MINE, COMMON]
+            default: ALL
+        - name: category
+          in: query
+          description: Status categories (fixed for every circuit). Several values allowed.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/NodeCategory'
+        - name: issueTypeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: buildingId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: assetId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: q
+          in: query
+          description: Ticket reference, for example `T-000123`.
+          schema:
+            type: string
+            maxLength: 20
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: One page of tickets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketPage'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [tickets]
+      operationId: createTicket
+      summary: Report a problem (H1 to H4, H10, G4, criteria 8 and 9)
+      description: |
+        Requires `ticket:create` on the site. The requester is the caller. With `assetId`, the location is copied
+        from the equipment (G2). A unit must be occupied by the caller unless they have `unit:read` on the site; a
+        building must be allowed (C7). The equipment is mandatory when the type requires it (H3). Visibility comes
+        from the type and the site's setting (H8). At most three photos (H10), uploaded first with purpose
+        `TICKET_PHOTO`. The ticket starts in the organization's circuit (ADR-036) and is routed by its type (H4):
+        the managers, or the designated technicians, are notified (K1).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketInput'
+      responses:
+        '201':
+          description: Ticket created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/TicketRuleViolated'
+
+  /v1/tickets/{ticketId}:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [tickets]
+      operationId: getTicket
+      summary: A ticket (H8, H9)
+      description: |
+        Same visibility as the list; otherwise `404`. A reader who sees the ticket only as a common ticket of their
+        residence gets the minimized view: no requester name, no photos (ADR-037).
+      responses:
+        '200':
+          description: The ticket.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tickets/{ticketId}/transitions:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [tickets]
+      operationId: listTicketTransitions
+      summary: What the caller can do now on this ticket (H5, H6, H7, ADR-036)
+      description: |
+        The passages of the ticket's circuit from its current step that the caller may take: they hold the
+        passage's permission on the site, or the passage is for the requester and the caller is the requester, and
+        the options of the organization allow it. A common ticket seen only as a member gives an empty list (read
+        only, H8). The server checks everything again when the passage is taken.
+      responses:
+        '200':
+          description: Available passages, in the circuit's order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailableTransition'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [tickets]
+      operationId: fireTicketTransition
+      summary: Change the step of a ticket (H5, H6, H7, C6)
+      description: |
+        Takes one passage of the circuit. Checks, in order: visibility (`404`), the passage exists from the current
+        step and is open to the caller (`TRANSITION_NOT_AVAILABLE`), C6 (nobody closes a ticket they asked for:
+        `SELF_CLOSE_FORBIDDEN`), then the passage's conditions (`REASON_REQUIRED`, `COMMENT_REQUIRED`,
+        `REQUESTER_CONFIRMATION_REQUIRED`). The history keeps who, when, the reason and the comment (H9). The
+        requester, the managers and the assigned technicians are notified, except the author (K1, K3).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionRequest'
+      responses:
+        '200':
+          description: The ticket after the passage.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            The ticket changed in the meantime (`VERSION_CONFLICT`), or the passage is not available from its current
+            step or to the caller (`TRANSITION_NOT_AVAILABLE`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: |
+            `SELF_CLOSE_FORBIDDEN` (C6), `REASON_REQUIRED`, `COMMENT_REQUIRED`, `REQUESTER_CONFIRMATION_REQUIRED`
+            (H5 option).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/tickets/{ticketId}/history:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [tickets]
+      operationId: getTicketHistory
+      summary: Everything that happened to a ticket (H9)
+      description: |
+        Same visibility as the ticket. Steps of the circuit and other changes, oldest first; nothing is ever
+        changed or removed. In the minimized view, people are shown by their part only (requester, manager,
+        technician, system).
+      responses:
+        '200':
+          description: History entries, oldest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketHistoryEntry'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/tickets/{ticketId}/photos:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    post:
+      tags: [tickets]
+      operationId: addTicketPhoto
+      summary: Add a photo to a ticket (H10)
+      description: |
+        The requester, or a person with `ticket:update-status` who sees the ticket, while it is neither closed nor
+        cancelled. Three photos at most per ticket (`TICKET_PHOTO_LIMIT`). The file comes from `POST /v1/files`
+        with purpose `TICKET_PHOTO`, uploaded by the caller.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileId]
+              properties:
+                fileId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: The ticket with its photos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: '`TICKET_PHOTO_LIMIT`, `FILE_NOT_USABLE`, or the ticket is closed or cancelled (`TICKET_CLOSED`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  # =====================================================================================================
+  # Sprint 3: ticket circuit per client (H5, C12, section 3.5, ADR-036)
+  # =====================================================================================================
+
+  /v1/admin/workflows:
+    get:
+      tags: [admin, workflow]
+      operationId: listWorkflows
+      summary: Ticket circuits and their versions (ADR-036)
+      description: Requires `ticket-workflow:read` on the platform.
+      responses:
+        '200':
+          description: Circuits, the platform default first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkflowSummary'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+
+  /v1/admin/workflows/{workflowId}/versions/{versionNumber}:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowId'
+      - $ref: '#/components/parameters/VersionNumber'
+    get:
+      tags: [admin, workflow]
+      operationId: getWorkflowVersion
+      summary: Steps and passages of one version of a circuit (ADR-036)
+      description: Requires `ticket-workflow:read` on the platform.
+      responses:
+        '200':
+          description: The version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowVersionDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/admin/workflows/{workflowId}/versions/{versionNumber}/publish:
+    parameters:
+      - $ref: '#/components/parameters/WorkflowId'
+      - $ref: '#/components/parameters/VersionNumber'
+    post:
+      tags: [admin, workflow]
+      operationId: publishWorkflowVersion
+      summary: Publish a draft version loaded by the architect (ADR-036)
+      description: |
+        Requires `ticket-workflow:configure` on the platform. Checks the version first: one start step of category
+        `OPEN`, at least one `CLOSED` and one `CANCELLED` step, every step reachable, known conditions and
+        permissions, valid settings. The previous published version is retired; tickets already started finish on
+        their own version. Audited.
+      responses:
+        '200':
+          description: Published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowVersionDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The version is not a draft (`WORKFLOW_VERSION_PUBLISHED`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: '`WORKFLOW_DEFINITION_INVALID`, each problem in `violations`.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /v1/admin/organizations/{organizationId}/workflow:
+    parameters:
+      - $ref: '#/components/parameters/OrganizationId'
+    get:
+      tags: [admin, workflow]
+      operationId: getOrganizationWorkflow
+      summary: The ticket circuit of a client and its options (H5, criterion 19)
+      description: |
+        Requires `ticket-workflow:read` on the platform. Without a choice, the platform default without options.
+      responses:
+        '200':
+          description: The client's circuit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationWorkflow'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [admin, workflow]
+      operationId: setOrganizationWorkflow
+      summary: Choose the circuit of a client and set its options (H5, criterion 19)
+      description: |
+        Requires `ticket-workflow:configure` on the platform. A new circuit applies to new tickets; the options
+        (auto-close, requester validation, labels) apply at once, to open tickets too (ADR-036). Audited with the
+        values before and after.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationWorkflowInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationWorkflow'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+        '422':
+          description: |
+            The circuit has no published version, is not a ticket circuit, or a label names an unknown step
+            (`WORKFLOW_SETTINGS_INVALID`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3752,6 +5549,99 @@ components:
         type: string
         maxLength: 2000
 
+    # ---- Sprint 3 ----
+    FileId:
+      name: fileId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssetFamilyId:
+      name: familyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssetModelId:
+      name: modelId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AttributeDefinitionId:
+      name: definitionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SupplierId:
+      name: supplierId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    WarrantyId:
+      name: warrantyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IssueCategoryId:
+      name: issueCategoryId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IssueTypeId:
+      name: issueTypeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TicketId:
+      name: ticketId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    WorkflowId:
+      name: workflowId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VersionNumber:
+      name: versionNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+
   headers:
     RetryAfter:
       description: Seconds to wait before trying again.
@@ -3872,6 +5762,43 @@ components:
         can be the annex of an `APARTMENT` of the same site), `UNIT_CATEGORY_TYPE_MISMATCH` (the category is for
         another unit type), `UNIT_CATEGORY_ARCHIVED`, `UNIT_CATEGORY_NOT_IN_SCOPE` (another organization's or
         site's category), `BUILDING_NOT_IN_SITE`, `OUTDOOR_AREA_NOT_IN_SITE`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    # ---- Sprint 3 ----
+    PhoneRejected:
+      description: The phone number is not a valid mobile of its country (`PHONE_INVALID`, ADR-028).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    FileNotUsable:
+      description: |
+        The file was uploaded by someone else, is already used, is older than 24 hours or has another purpose
+        (`FILE_NOT_USABLE`, ADR-038).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    AssetRuleViolated:
+      description: |
+        `ASSET_FAMILY_ARCHIVED`, `ASSET_FAMILY_NOT_IN_SCOPE` (another organization's family),
+        `ASSET_MODEL_FAMILY_MISMATCH`, `ASSET_MODEL_ARCHIVED`, `BUILDING_NOT_IN_SITE`, `OUTDOOR_AREA_NOT_IN_SITE`,
+        `ASSET_LOCATION_INVALID` (a building or an outdoor area, never both; a floor only inside a building),
+        `ASSET_ARCHIVED`, `SUPPLIER_NOT_IN_ORGANIZATION`, `ATTRIBUTE_INVALID` (field codes in `violations`),
+        `WARRANTY_DATES_INVALID`, `FILE_NOT_USABLE`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TicketRuleViolated:
+      description: |
+        `TICKET_ASSET_REQUIRED` (H3), `ASSET_ARCHIVED`, `ASSET_NOT_IN_SITE`, `TICKET_UNIT_NOT_OCCUPIED`,
+        `BUILDING_NOT_ALLOWED` (C7), `BUILDING_NOT_IN_SITE`, `OUTDOOR_AREA_NOT_IN_SITE`, `UNIT_NOT_IN_SITE`,
+        `TICKET_LOCATION_INVALID`, `ISSUE_TYPE_ARCHIVED`, `ISSUE_TYPE_NOT_IN_SCOPE`, `TICKET_PHOTO_LIMIT` (H10),
+        `FILE_NOT_USABLE`.
       content:
         application/problem+json:
           schema:
@@ -4973,6 +6900,21 @@ components:
         - text:read
         - text:update
         - support:access
+        - asset:create
+        - asset:read
+        - asset:update
+        - asset:archive
+        - issue-type:read
+        - issue-type:manage
+        - ticket:create
+        - ticket:read
+        - ticket:read-private
+        - ticket:update-status
+        - ticket:cancel
+        - ticket:close
+        - ticket:reopen
+        - ticket-workflow:read
+        - ticket-workflow:configure
 
     ScopeType:
       type: string
@@ -6026,7 +7968,8 @@ components:
       description: |
         What happened. The application writes the text in the reader's language from the template and `params`.
         Glossary `NotificationTemplate`.
-      enum: [ACCESS_REQUESTED, ACCESS_AUTO_APPROVED, ACCESS_APPROVED, ACCESS_REJECTED]
+      enum: [ACCESS_REQUESTED, ACCESS_AUTO_APPROVED, ACCESS_APPROVED, ACCESS_REJECTED, TICKET_CREATED, TICKET_ROUTED,
+             TICKET_STATUS_CHANGED]
 
     Notification:
       type: object
@@ -6417,3 +8360,1417 @@ components:
             $ref: '#/components/schemas/SupportSession'
         page:
           $ref: '#/components/schemas/PageMeta'
+
+    # =====================================================================================================
+    # Sprint 3
+    # =====================================================================================================
+
+    VersionOnly:
+      type: object
+      required: [version]
+      properties:
+        version:
+          $ref: '#/components/schemas/Version'
+
+    OwnerScope:
+      type: string
+      description: |
+        Who owns a reference item: the platform (defaults kept by the administrators, M7) or one organization
+        (its own additions, visible only to it). Glossary `OwnerScope`.
+      enum: [PLATFORM, ORGANIZATION]
+
+    NamedRef:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    # ---- Files (ADR-038) ----
+
+    FilePurpose:
+      type: string
+      description: |
+        `TICKET_PHOTO`: JPEG or PNG, at most 8 MB received, re-encoded as JPEG. `ASSET_DOCUMENT`: PDF, JPEG or PNG,
+        at most 10 MB, images re-encoded. Glossary `FilePurpose`.
+      enum: [TICKET_PHOTO, ASSET_DOCUMENT]
+
+    UploadedFile:
+      type: object
+      required: [id, purpose, contentType, sizeBytes, uploadedAt, usableUntil]
+      properties:
+        id:
+          type: string
+          format: uuid
+        purpose:
+          $ref: '#/components/schemas/FilePurpose'
+        contentType:
+          type: string
+          description: Detected from the content, after re-encoding.
+          enum: [image/jpeg, application/pdf]
+        sizeBytes:
+          type: integer
+          format: int64
+        originalName:
+          type: string
+          maxLength: 120
+          description: Cleaned name, for display only.
+        uploadedAt:
+          type: string
+          format: date-time
+        usableUntil:
+          type: string
+          format: date-time
+          description: Attach it before this time (24 hours).
+
+    SignedFileLink:
+      type: object
+      required: [fileId, url, contentType, expiresAt]
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        url:
+          type: string
+          description: Relative URL of `GET /v1/files/{fileId}/content`, valid 5 minutes. Fetch a fresh one by reloading.
+        contentType:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    # ---- Equipment (G1 to G4, ADR-039) ----
+
+    AssetFamily:
+      type: object
+      required: [id, scope, code, name, sortOrder, active, models, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scope:
+          $ref: '#/components/schemas/OwnerScope'
+        code:
+          type: string
+          example: ELEVATOR
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetModel'
+        version:
+          $ref: '#/components/schemas/Version'
+
+    AssetFamilyInput:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9_-]{0,29}$'
+          description: Readable code, also used in the Excel import.
+        name:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          default: 100
+
+    UpdateAssetFamilyRequest:
+      type: object
+      required: [name, sortOrder, active, version]
+      properties:
+        name:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    AssetModel:
+      type: object
+      required: [id, familyId, scope, name, active, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        familyId:
+          type: string
+          format: uuid
+        scope:
+          $ref: '#/components/schemas/OwnerScope'
+        name:
+          type: string
+        modelVersion:
+          type: string
+          description: Version or reference of the manufacturer.
+        manufacturer:
+          type: string
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    AssetModelInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        modelVersion:
+          type: string
+          maxLength: 50
+        manufacturer:
+          type: string
+          maxLength: 100
+
+    UpdateAssetModelRequest:
+      allOf:
+        - $ref: '#/components/schemas/AssetModelInput'
+        - type: object
+          required: [active, version]
+          properties:
+            active:
+              type: boolean
+            version:
+              $ref: '#/components/schemas/Version'
+
+    AttributeDataType:
+      type: string
+      description: Glossary `DataType`.
+      enum: [TEXT, INTEGER, DECIMAL, DATE, BOOLEAN, LIST]
+
+    AttributeOption:
+      type: object
+      required: [code, label, active]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9_-]{0,29}$'
+        label:
+          $ref: '#/components/schemas/LocalizedText'
+        active:
+          type: boolean
+
+    AttributeOptionInput:
+      type: object
+      required: [code, label]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9_-]{0,29}$'
+        label:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        active:
+          type: boolean
+          default: true
+
+    AttributeDefinition:
+      description: |
+        One characteristic of an equipment family (G3, ADR-039), shown and edited by the "Caractéristiques" block.
+        Values are stored in the equipment's `attributes`, keyed by `code`. Glossary `AttributeDefinition`.
+      type: object
+      required: [id, scope, familyId, code, dataType, required, label, sortOrder, active, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scope:
+          $ref: '#/components/schemas/OwnerScope'
+        familyId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: '^[a-z][a-zA-Z0-9]{0,39}$'
+          example: capacityKg
+        dataType:
+          $ref: '#/components/schemas/AttributeDataType'
+        required:
+          type: boolean
+        label:
+          $ref: '#/components/schemas/LocalizedText'
+        unit:
+          type: string
+          description: Unit shown after the value, for example `kg`.
+        options:
+          type: array
+          description: Choices of a `LIST`.
+          items:
+            $ref: '#/components/schemas/AttributeOption'
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    AttributeDefinitionInput:
+      type: object
+      required: [scope, code, dataType, label]
+      properties:
+        scope:
+          $ref: '#/components/schemas/OwnerScope'
+        organizationId:
+          type: string
+          format: uuid
+          description: Required for scope `ORGANIZATION`.
+        code:
+          type: string
+          pattern: '^[a-z][a-zA-Z0-9]{0,39}$'
+        dataType:
+          $ref: '#/components/schemas/AttributeDataType'
+        required:
+          type: boolean
+          default: false
+        label:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        unit:
+          type: string
+          maxLength: 10
+        options:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/AttributeOptionInput'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          default: 100
+
+    UpdateAttributeDefinitionRequest:
+      type: object
+      required: [required, label, sortOrder, active, version]
+      properties:
+        required:
+          type: boolean
+        label:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        unit:
+          type: string
+          maxLength: 10
+        options:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/AttributeOptionInput'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    AttributeValues:
+      type: object
+      description: |
+        Values of the characteristics, keyed by definition code. Strings for `TEXT` (500 characters at most), `DATE`
+        (`YYYY-MM-DD`) and `LIST` (option code); numbers for `INTEGER` and `DECIMAL`; booleans for `BOOLEAN`.
+      additionalProperties:
+        oneOf:
+          - type: string
+            maxLength: 500
+          - type: number
+          - type: boolean
+
+    Supplier:
+      type: object
+      required: [id, organizationId, name, active, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+          description: As typed without spaces or separators, 6 to 15 digits; landlines accepted (a company number).
+        email:
+          type: string
+          format: email
+        activity:
+          type: string
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    SupplierInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        phone:
+          type: string
+          maxLength: 30
+          description: Any number, landline included (`PHONE_INVALID` unless 6 to 15 digits once separators removed).
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        activity:
+          type: string
+          maxLength: 120
+
+    UpdateSupplierRequest:
+      allOf:
+        - $ref: '#/components/schemas/SupplierInput'
+        - type: object
+          required: [active, version]
+          properties:
+            active:
+              type: boolean
+            version:
+              $ref: '#/components/schemas/Version'
+
+    AssetState:
+      type: string
+      description: In service, out of order, decommissioned. Archiving is separate (`archived`). Glossary `AssetState`.
+      enum: [IN_SERVICE, OUT_OF_ORDER, DECOMMISSIONED]
+
+    AssetDocumentType:
+      type: string
+      description: Glossary `AssetDocumentType`.
+      enum: [MANUAL, CERTIFICATE, INVOICE, PHOTO, OTHER]
+
+    AssetFamilyRef:
+      type: object
+      required: [id, code, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+
+    AssetSummary:
+      description: Resident view of an equipment (C4, ADR-039).
+      type: object
+      required: [id, siteId, siteName, family, name, reference, state, archived]
+      properties:
+        id:
+          type: string
+          format: uuid
+        siteId:
+          type: string
+          format: uuid
+        siteName:
+          type: string
+        family:
+          $ref: '#/components/schemas/AssetFamilyRef'
+        model:
+          $ref: '#/components/schemas/NamedRef'
+        name:
+          type: string
+        reference:
+          type: string
+        building:
+          $ref: '#/components/schemas/NamedRef'
+        floor:
+          type: integer
+        outdoorArea:
+          $ref: '#/components/schemas/NamedRef'
+        state:
+          $ref: '#/components/schemas/AssetState'
+        archived:
+          type: boolean
+        qrCode:
+          type: string
+          pattern: '^[A-Z2-7]{26}$'
+          description: Present only with `asset:update` (labels). The label shows `https://<host>/q/<qrCode>`.
+
+    Asset:
+      allOf:
+        - $ref: '#/components/schemas/AssetSummary'
+        - type: object
+          required: [version]
+          properties:
+            management:
+              $ref: '#/components/schemas/AssetManagement'
+            version:
+              $ref: '#/components/schemas/Version'
+
+    AssetManagement:
+      description: Present only with `asset:update` (ADR-039).
+      type: object
+      required: [attributes, documents, warranties]
+      properties:
+        serialNumber:
+          type: string
+        commissionedOn:
+          type: string
+          format: date
+        supplier:
+          $ref: '#/components/schemas/Supplier'
+        attributes:
+          $ref: '#/components/schemas/AttributeValues'
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetDocument'
+        warranties:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warranty'
+
+    AssetDocument:
+      type: object
+      required: [id, type, title, file, addedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/AssetDocumentType'
+        title:
+          type: string
+        file:
+          $ref: '#/components/schemas/SignedFileLink'
+        addedAt:
+          type: string
+          format: date-time
+
+    AssetDocumentInput:
+      type: object
+      required: [fileId, type, title]
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/AssetDocumentType'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+
+    Warranty:
+      type: object
+      required: [id, startDate, endDate, alertDaysBefore, active, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        alertDaysBefore:
+          type: integer
+        documentId:
+          type: string
+          format: uuid
+          description: One of the equipment's documents.
+        note:
+          type: string
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    WarrantyInput:
+      type: object
+      required: [startDate, endDate]
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        alertDaysBefore:
+          type: integer
+          minimum: 0
+          maximum: 365
+          default: 30
+        documentId:
+          type: string
+          format: uuid
+        note:
+          type: string
+          maxLength: 300
+
+    UpdateWarrantyRequest:
+      allOf:
+        - $ref: '#/components/schemas/WarrantyInput'
+        - type: object
+          required: [active, version]
+          properties:
+            active:
+              type: boolean
+            version:
+              $ref: '#/components/schemas/Version'
+
+    AssetInput:
+      type: object
+      required: [familyId, name]
+      properties:
+        familyId:
+          type: string
+          format: uuid
+        modelId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        reference:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9_./-]{0,39}$'
+          description: Unique in the site; generated from the family code when absent.
+        buildingId:
+          type: string
+          format: uuid
+        floor:
+          type: integer
+          minimum: -10
+          maximum: 200
+        outdoorAreaId:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/AssetState'
+        serialNumber:
+          type: string
+          maxLength: 80
+        commissionedOn:
+          type: string
+          format: date
+        supplierId:
+          type: string
+          format: uuid
+        attributes:
+          $ref: '#/components/schemas/AttributeValues'
+
+    UpdateAssetRequest:
+      type: object
+      required: [name, reference, state, attributes, version]
+      properties:
+        modelId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        reference:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9_./-]{0,39}$'
+        buildingId:
+          type: string
+          format: uuid
+        floor:
+          type: integer
+          minimum: -10
+          maximum: 200
+        outdoorAreaId:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/AssetState'
+        serialNumber:
+          type: string
+          maxLength: 80
+        commissionedOn:
+          type: string
+          format: date
+        supplierId:
+          type: string
+          format: uuid
+        attributes:
+          $ref: '#/components/schemas/AttributeValues'
+        version:
+          $ref: '#/components/schemas/Version'
+
+    AssetPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetSummary'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+
+    AssetImportReport:
+      type: object
+      required: [outcome, totalRows, createdCount, errors]
+      properties:
+        outcome:
+          type: string
+          description: Same meaning as the unit import.
+          enum: [CHECKED, IMPORTED, REJECTED]
+        totalRows:
+          type: integer
+        createdCount:
+          type: integer
+        errors:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/AssetImportError'
+
+    AssetImportError:
+      type: object
+      required: [row, code]
+      properties:
+        row:
+          type: integer
+          description: Row number as shown in Excel.
+        column:
+          type: string
+          description: Column key of the template.
+          enum: [name, family, model, reference, building, floor, outdoorArea, serialNumber, state, commissionedOn,
+                 supplier]
+        code:
+          type: string
+          description: |
+            Same codes as the equipment endpoints, plus `IMPORT_VALUE_REQUIRED`, `IMPORT_VALUE_INVALID`,
+            `IMPORT_DUPLICATE_IN_FILE`, `IMPORT_FAMILY_UNKNOWN`, `IMPORT_MODEL_UNKNOWN`, `IMPORT_BUILDING_UNKNOWN`,
+            `IMPORT_OUTDOOR_AREA_UNKNOWN`, `IMPORT_SUPPLIER_UNKNOWN`.
+        value:
+          type: string
+          maxLength: 100
+
+    # ---- Issue categories and types (H2 to H4, H8, ADR-037) ----
+
+    Visibility:
+      type: string
+      description: |
+        `COMMON`: seen by every member of the residence, read only (H8). `PRIVATE`: seen by the requester, the
+        occupants of the unit, the managers, the promoteur and the assigned technicians. Glossary `Visibility`.
+      enum: [COMMON, PRIVATE]
+
+    RoutingDestination:
+      type: string
+      description: Who receives a new ticket of this type (H4). Glossary `RoutingDestination`.
+      enum: [SITE_MANAGER, TECHNICIANS]
+
+    IssueCatalogType:
+      type: object
+      required: [id, code, name, assetRequired, visibility]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        assetRequired:
+          type: boolean
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+
+    IssueCatalogCategory:
+      type: object
+      required: [id, code, name, types]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueCatalogType'
+
+    IssueCategory:
+      type: object
+      required: [id, scope, code, name, sortOrder, active, types, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scope:
+          $ref: '#/components/schemas/OwnerScope'
+        code:
+          type: string
+          example: TECHNICAL
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueType'
+        version:
+          $ref: '#/components/schemas/Version'
+
+    IssueCategoryInput:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9_-]{0,29}$'
+        name:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          default: 100
+
+    UpdateIssueCategoryRequest:
+      type: object
+      required: [name, sortOrder, active, version]
+      properties:
+        name:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    IssueType:
+      type: object
+      required: [id, categoryId, scope, code, name, assetRequired, defaultVisibility, assetFamilyIds, sortOrder,
+                 active, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        scope:
+          $ref: '#/components/schemas/OwnerScope'
+        code:
+          type: string
+          example: ELEVATOR_STUCK
+        name:
+          $ref: '#/components/schemas/LocalizedText'
+        assetRequired:
+          type: boolean
+          description: H3 - true for technical types.
+        defaultVisibility:
+          $ref: '#/components/schemas/Visibility'
+        assetFamilyIds:
+          type: array
+          description: Families this type fits, to filter the choice from an equipment QR code; empty means all.
+          items:
+            type: string
+            format: uuid
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    IssueTypeInput:
+      type: object
+      required: [code, name, assetRequired, defaultVisibility]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9_-]{0,39}$'
+        name:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        assetRequired:
+          type: boolean
+        defaultVisibility:
+          $ref: '#/components/schemas/Visibility'
+        assetFamilyIds:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          default: 100
+
+    UpdateIssueTypeRequest:
+      type: object
+      required: [name, assetRequired, defaultVisibility, assetFamilyIds, sortOrder, active, version]
+      properties:
+        name:
+          $ref: '#/components/schemas/LocalizedTextInput'
+        assetRequired:
+          type: boolean
+        defaultVisibility:
+          $ref: '#/components/schemas/Visibility'
+        assetFamilyIds:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+        sortOrder:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+
+    IssueTypeConfig:
+      description: Routing and visibility of one issue type on one site (H4, H8). Glossary `SiteIssueTypeConfig`.
+      type: object
+      required: [issueType, categoryName, configured, routing, technicians, visibility, active]
+      properties:
+        issueType:
+          $ref: '#/components/schemas/IssueType'
+        categoryName:
+          $ref: '#/components/schemas/LocalizedText'
+        configured:
+          type: boolean
+          description: False when the site uses the defaults (manager, type's visibility, active).
+        routing:
+          $ref: '#/components/schemas/RoutingDestination'
+        technicians:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonRef'
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+        active:
+          type: boolean
+          description: False hides the type on this site.
+        version:
+          $ref: '#/components/schemas/Version'
+
+    IssueTypeConfigInput:
+      type: object
+      required: [routing, visibility, active]
+      properties:
+        routing:
+          $ref: '#/components/schemas/RoutingDestination'
+        technicianIds:
+          type: array
+          description: One to five people with `TECHNICIANS`; empty with `SITE_MANAGER`.
+          maxItems: 5
+          items:
+            type: string
+            format: uuid
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+        active:
+          type: boolean
+        version:
+          $ref: '#/components/schemas/Version'
+          description: Absent for the first setting of this type on the site.
+
+    # ---- Tickets (H1 to H10, ADR-036, ADR-037) ----
+
+    NodeCategory:
+      type: string
+      description: |
+        Fixed category of a circuit step, the same for every circuit: notifications, filters and indicators rely on
+        it (ADR-036). Glossary `NodeCategory`.
+      enum: [OPEN, IN_PROGRESS, ON_HOLD, RESOLVED, CLOSED, CANCELLED]
+
+    HoldReason:
+      type: string
+      description: Why a ticket waits (H5). `OTHER` needs a comment. Glossary `HoldReason`.
+      enum: [PART, QUOTE, ACCESS, OTHER]
+
+    TicketStatus:
+      type: object
+      required: [code, category, label]
+      properties:
+        code:
+          type: string
+          description: Step code in the circuit (`REQUESTED`, `IN_PROGRESS`…); depends on the client's circuit.
+        category:
+          $ref: '#/components/schemas/NodeCategory'
+        label:
+          $ref: '#/components/schemas/LocalizedText'
+          description: The client's label (H5 option), else the circuit's.
+        since:
+          type: string
+          format: date-time
+        holdReason:
+          $ref: '#/components/schemas/HoldReason'
+
+    TicketLocation:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/NamedRef'
+        floor:
+          type: integer
+        outdoorArea:
+          $ref: '#/components/schemas/NamedRef'
+        unit:
+          type: object
+          required: [id, reference]
+          properties:
+            id:
+              type: string
+              format: uuid
+            reference:
+              type: string
+        address:
+          $ref: '#/components/schemas/TicketAddress'
+          description: The building's address (its own or the copy of the site's), else the site's (criterion 18).
+
+    TicketAddress:
+      description: Address shown next to a ticket (A9, criterion 18).
+      type: object
+      required: [addressLine, zoneName]
+      properties:
+        label:
+          type: string
+        addressLine:
+          type: string
+        postalCode:
+          type: string
+        zoneName:
+          $ref: '#/components/schemas/LocalizedText'
+          description: Name of the attachment zone (Algeria - the commune).
+
+    TicketSummary:
+      type: object
+      required: [id, reference, siteId, siteName, nature, issueType, visibility, status, location, mine, photoCount,
+                 createdAt, lastChangeAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+          example: T-000123
+        siteId:
+          type: string
+          format: uuid
+        siteName:
+          type: string
+        nature:
+          type: string
+          description: '`PREVENTIVE` arrives in sprint 4. Glossary `TicketNature`.'
+          enum: [CORRECTIVE, PREVENTIVE]
+        issueType:
+          type: object
+          required: [id, code, name, categoryName]
+          properties:
+            id:
+              type: string
+              format: uuid
+            code:
+              type: string
+            name:
+              $ref: '#/components/schemas/LocalizedText'
+            categoryName:
+              $ref: '#/components/schemas/LocalizedText'
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+        status:
+          $ref: '#/components/schemas/TicketStatus'
+        location:
+          $ref: '#/components/schemas/TicketLocation'
+        asset:
+          type: object
+          required: [id, name, reference]
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            reference:
+              type: string
+        mine:
+          type: boolean
+          description: The caller is the requester.
+        photoCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        lastChangeAt:
+          type: string
+          format: date-time
+
+    TicketPhoto:
+      type: object
+      required: [id, file, addedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        file:
+          $ref: '#/components/schemas/SignedFileLink'
+        addedAt:
+          type: string
+          format: date-time
+
+    Ticket:
+      allOf:
+        - $ref: '#/components/schemas/TicketSummary'
+        - type: object
+          required: [minimized, photos, technicians, version]
+          properties:
+            minimized:
+              type: boolean
+              description: |
+                True when the caller sees the ticket only as a common ticket of their residence: no requester, no
+                description author, no photos, no technician names (ADR-037).
+            description:
+              type: string
+            requester:
+              $ref: '#/components/schemas/PersonRef'
+              description: Absent when minimized or for a ticket created by the system.
+            photos:
+              type: array
+              maxItems: 3
+              items:
+                $ref: '#/components/schemas/TicketPhoto'
+            technicians:
+              type: array
+              description: Assigned technicians (routing in sprint 3, manual changes in sprint 4).
+              items:
+                $ref: '#/components/schemas/PersonRef'
+            canAddPhoto:
+              type: boolean
+            version:
+              $ref: '#/components/schemas/Version'
+
+    TicketPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketSummary'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+
+    TicketInput:
+      type: object
+      required: [siteId, issueTypeId]
+      properties:
+        siteId:
+          type: string
+          format: uuid
+        issueTypeId:
+          type: string
+          format: uuid
+        assetId:
+          type: string
+          format: uuid
+          description: When given, the location is taken from the equipment and the fields below are ignored.
+        buildingId:
+          type: string
+          format: uuid
+        floor:
+          type: integer
+          minimum: -10
+          maximum: 200
+        outdoorAreaId:
+          type: string
+          format: uuid
+        unitId:
+          type: string
+          format: uuid
+        description:
+          type: string
+          maxLength: 2000
+        photoFileIds:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+
+    AvailableTransition:
+      type: object
+      required: [code, to, reasonRequired, commentRequired]
+      properties:
+        code:
+          type: string
+          example: put_on_hold
+        label:
+          $ref: '#/components/schemas/LocalizedText'
+          description: Name of the action, from the text dictionary (`workflow.transition.<code>`).
+        to:
+          type: object
+          required: [code, category, label]
+          properties:
+            code:
+              type: string
+            category:
+              $ref: '#/components/schemas/NodeCategory'
+            label:
+              $ref: '#/components/schemas/LocalizedText'
+        reasonRequired:
+          type: boolean
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/HoldReason'
+        commentRequired:
+          type: boolean
+          description: Always required (cancel by the manager).
+        commentRequiredForReasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/HoldReason'
+
+    TransitionRequest:
+      type: object
+      required: [transition, version]
+      properties:
+        transition:
+          type: string
+          pattern: '^[a-z][a-z0-9_]{1,49}$'
+        reason:
+          $ref: '#/components/schemas/HoldReason'
+        comment:
+          type: string
+          maxLength: 500
+        version:
+          $ref: '#/components/schemas/Version'
+
+    TicketHistoryEntry:
+      type: object
+      required: [at, kind, actor]
+      properties:
+        at:
+          type: string
+          format: date-time
+        kind:
+          type: string
+          description: '`STEP`: a passage of the circuit. `ACTIVITY`: another change.'
+          enum: [STEP, ACTIVITY]
+        transition:
+          type: string
+          description: Passage code, for `STEP`.
+        from:
+          $ref: '#/components/schemas/TicketStatus'
+        to:
+          $ref: '#/components/schemas/TicketStatus'
+        reason:
+          $ref: '#/components/schemas/HoldReason'
+        comment:
+          type: string
+        activity:
+          type: string
+          description: For `ACTIVITY`. Glossary `TicketActivityType`.
+          enum: [CREATED, PHOTO_ADDED, TECHNICIAN_ROUTED]
+        actor:
+          type: object
+          required: [part]
+          properties:
+            part:
+              type: string
+              description: The actor's part in this ticket.
+              enum: [REQUESTER, MANAGER, TECHNICIAN, SYSTEM, OTHER]
+            person:
+              $ref: '#/components/schemas/PersonRef'
+              description: Absent in the minimized view and for the system.
+
+    # ---- Ticket circuit per client (H5, ADR-036) ----
+
+    WorkflowVersionSummary:
+      type: object
+      required: [number, status]
+      properties:
+        number:
+          type: integer
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, RETIRED]
+        publishedAt:
+          type: string
+          format: date-time
+
+    WorkflowSummary:
+      type: object
+      required: [id, code, name, ownerScope, subjectType, versions]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: default-ticket
+        name:
+          type: string
+        ownerScope:
+          type: string
+          enum: [PLATFORM, ORGANIZATION, SITE]
+        subjectType:
+          type: string
+          enum: [TICKET]
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowVersionSummary'
+        organizationsUsing:
+          type: integer
+          description: Number of organizations bound to this circuit.
+
+    WorkflowNode:
+      type: object
+      required: [code, nodeType, category, label]
+      properties:
+        code:
+          type: string
+        nodeType:
+          type: string
+          description: '`STATE` in P1.'
+        category:
+          $ref: '#/components/schemas/NodeCategory'
+        label:
+          $ref: '#/components/schemas/LocalizedText'
+        config:
+          type: object
+          additionalProperties: true
+          description: 'For example `{"autoClose": {"transition": "auto_close"}}`.'
+
+    WorkflowComponentRef:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          example: ReasonRequired
+        config:
+          type: object
+          additionalProperties: true
+
+    WorkflowTransition:
+      type: object
+      required: [code, from, to, guards, sortOrder]
+      properties:
+        code:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        permission:
+          $ref: '#/components/schemas/PermissionCode'
+        guards:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowComponentRef'
+        sortOrder:
+          type: integer
+
+    WorkflowVersionDetail:
+      type: object
+      required: [workflowId, code, name, version, nodes, transitions]
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        version:
+          $ref: '#/components/schemas/WorkflowVersionSummary'
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowNode'
+        transitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowTransition'
+
+    WorkflowSettings:
+      description: Options of a client, read at each use (ADR-036). Glossary `WorkflowSettings`.
+      type: object
+      required: [requesterValidation, labels]
+      properties:
+        autoCloseAfterDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+          description: Absent = no automatic closing (the default, H5).
+        requesterValidation:
+          type: boolean
+          description: The requester confirms before the manager closes (H5, off by default).
+        labels:
+          type: object
+          description: The client's labels of the steps, by step code.
+          additionalProperties:
+            $ref: '#/components/schemas/LocalizedTextInput'
+
+    OrganizationWorkflow:
+      type: object
+      required: [organizationId, workflow, publishedVersion, chosen, settings, nodes]
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+        workflow:
+          $ref: '#/components/schemas/WorkflowSummary'
+        publishedVersion:
+          type: integer
+          description: Version new tickets start on.
+        chosen:
+          type: boolean
+          description: False when the client uses the platform default without having chosen it.
+        settings:
+          $ref: '#/components/schemas/WorkflowSettings'
+        nodes:
+          type: array
+          description: Steps of the published version, to edit the labels.
+          items:
+            $ref: '#/components/schemas/WorkflowNode'
+        version:
+          $ref: '#/components/schemas/Version'
+
+    OrganizationWorkflowInput:
+      type: object
+      required: [workflowId, settings]
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        settings:
+          $ref: '#/components/schemas/WorkflowSettings'
+        version:
+          $ref: '#/components/schemas/Version'
+          description: Absent for the first choice.

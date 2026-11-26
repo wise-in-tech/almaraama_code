@@ -79,7 +79,34 @@
       "TEXT_VARIABLES_CHANGED": "Gardez exactement les variables {{…}} du texte d'origine.",
       "ROLE_ASSIGNMENT_EXISTS": "Cette personne a déjà ce rôle.",
       "ROLE_NOT_GRANTABLE": "Vous ne pouvez pas donner ce rôle.",
-      "PERMISSION_NOT_ADJUSTABLE": "Ce droit ne peut pas être modifié."
+      "PERMISSION_NOT_ADJUSTABLE": "Ce droit ne peut pas être modifié.",
+      "TRANSITION_NOT_AVAILABLE": "Cette action n'est plus possible. Rechargez le ticket.",
+      "REASON_REQUIRED": "Choisissez un motif.",
+      "COMMENT_REQUIRED": "Un commentaire est nécessaire.",
+      "SELF_CLOSE_FORBIDDEN": "Vous ne pouvez pas clôturer un ticket que vous avez demandé.",
+      "REQUESTER_CONFIRMATION_REQUIRED": "Le demandeur doit d'abord confirmer.",
+      "TICKET_ASSET_REQUIRED": "Scannez le QR code de l'équipement pour ce problème.",
+      "TICKET_PHOTO_LIMIT": "Trois photos au plus.",
+      "TICKET_UNIT_NOT_OCCUPIED": "Ce bien n'est pas le vôtre.",
+      "TICKET_CLOSED": "Ce ticket est terminé.",
+      "TICKET_LOCATION_INVALID": "Choisissez un bâtiment ou un espace extérieur, pas les deux.",
+      "ISSUE_TYPE_ARCHIVED": "Ce type de problème n'est plus proposé.",
+      "TECHNICIAN_NOT_ELIGIBLE": "Cette personne ne peut pas traiter les tickets de la résidence.",
+      "FILE_NOT_USABLE": "Ce fichier n'est plus utilisable. Envoyez-le à nouveau.",
+      "UNSUPPORTED_CONTENT": "Ce fichier n'est pas accepté. Envoyez une photo (JPEG, PNG) ou un PDF.",
+      "TOO_LARGE": "Ce fichier est trop volumineux.",
+      "IMAGE_TOO_LARGE": "Cette image est trop grande.",
+      "ASSET_REFERENCE_TAKEN": "Un autre équipement a cette référence.",
+      "ASSET_ARCHIVED": "Cet équipement est archivé.",
+      "ASSET_MODEL_FAMILY_MISMATCH": "Ce modèle appartient à une autre famille.",
+      "ATTRIBUTE_INVALID": "Vérifiez les caractéristiques.",
+      "WARRANTY_DATES_INVALID": "La fin doit venir après le début.",
+      "WORKFLOW_DEFINITION_INVALID": "Ce circuit n'est pas valide et ne peut pas être publié.",
+      "WORKFLOW_VERSION_PUBLISHED": "Cette version est déjà publiée.",
+      "WORKFLOW_SETTINGS_INVALID": "Ces options ne sont pas valides.",
+      "IMPORT_FAMILY_UNKNOWN": "Code de famille inconnu.",
+      "IMPORT_MODEL_UNKNOWN": "Modèle inconnu dans cette famille.",
+      "IMPORT_SUPPLIER_UNKNOWN": "Fournisseur inconnu."
     }
   },
   "login": {
@@ -154,7 +181,9 @@
     "inactive": "Désactivée",
     "save": "Enregistrer",
     "search": "Rechercher",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "yes": "Oui",
+    "no": "Non"
   },
   "person": {
     "firstName": "Prénom",
@@ -178,7 +207,13 @@
     "requests": "Demandes d'accès",
     "preRegistrations": "Pré-inscriptions",
     "qr": "QR code d'inscription",
-    "myAccesses": "Mes résidences"
+    "myAccesses": "Mes résidences",
+    "report": "Signaler un problème",
+    "assets": "Équipements",
+    "routing": "Routage des tickets",
+    "tickets": "Tickets",
+    "adminWorkflows": "Circuits des tickets",
+    "adminWorkflow": "Circuit des tickets"
   },
   "registration": {
     "title": "Inscription à votre résidence",
@@ -476,7 +511,174 @@
       "ACCESS_REQUESTED": "{{personName}} demande un accès à {{siteName}}.",
       "ACCESS_AUTO_APPROVED": "{{personName}} a rejoint {{siteName}} avec sa clé.",
       "ACCESS_APPROVED": "Votre accès à {{siteName}} est ouvert.",
-      "ACCESS_REJECTED": "Votre demande pour {{siteName}} a été refusée."
+      "ACCESS_REJECTED": "Votre demande pour {{siteName}} a été refusée.",
+      "TICKET_CREATED": "Nouveau ticket {{reference}} à {{siteName}}.",
+      "TICKET_ROUTED": "Le ticket {{reference}} à {{siteName}} vous est confié.",
+      "TICKET_STATUS_CHANGED": "Le ticket {{reference}} à {{siteName}} change d'étape."
     }
+  },
+  "visibility": {
+    "COMMON": "Parties communes",
+    "PRIVATE": "Privé"
+  },
+  "holdReason": {
+    "PART": "En attente d'une pièce",
+    "QUOTE": "En attente d'un devis",
+    "ACCESS": "En attente d'un accès",
+    "OTHER": "Autre motif"
+  },
+  "transitions": {
+    "take_charge": "Prendre en charge",
+    "put_on_hold": "Mettre en attente",
+    "resume": "Reprendre",
+    "resolve": "Marquer traité",
+    "confirm_resolution": "Confirmer que c'est réglé",
+    "reopen": "Rouvrir",
+    "reopen_by_requester": "Ce n'est pas réglé, rouvrir",
+    "close": "Clôturer",
+    "cancel_by_requester": "Annuler ma demande",
+    "cancel_by_manager": "Annuler avec un motif",
+    "auto_close": "Clôture automatique"
+  },
+  "part": {
+    "REQUESTER": "Demandeur",
+    "MANAGER": "Gestionnaire",
+    "TECHNICIAN": "Technicien",
+    "SYSTEM": "Système",
+    "OTHER": "Quelqu'un"
+  },
+  "activity": {
+    "CREATED": "Ticket signalé",
+    "PHOTO_ADDED": "Photo ajoutée",
+    "TECHNICIAN_ROUTED": "Technicien désigné"
+  },
+  "assetState": {
+    "IN_SERVICE": "En service",
+    "OUT_OF_ORDER": "En panne",
+    "DECOMMISSIONED": "Hors service"
+  },
+  "documentType": {
+    "MANUAL": "Notice",
+    "CERTIFICATE": "Certificat",
+    "INVOICE": "Facture",
+    "PHOTO": "Photo",
+    "OTHER": "Autre"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "report": "Signaler un problème",
+    "view": {
+      "MINE": "Mes tickets",
+      "COMMON": "Parties communes",
+      "ALL": "Tous les tickets"
+    },
+    "site": "Résidence",
+    "allSites": "Toutes les résidences",
+    "showAll": "Voir aussi les tickets clôturés",
+    "showOpen": "Tickets ouverts seulement",
+    "none": "Aucun ticket.",
+    "photos": "Photos ({{count}} sur {{max}})",
+    "photoSending": "Envoi de la photo…",
+    "requester": "Demandé par {{name}}",
+    "technicians": "Techniciens : {{names}}",
+    "photoAlt": "Photo du problème",
+    "floor": "Étage {{floor}}",
+    "actions": "Ce que vous pouvez faire",
+    "reason": "Motif",
+    "comment": "Commentaire",
+    "missing": {
+      "reason": "Choisissez un motif.",
+      "comment": "Écrivez un commentaire."
+    },
+    "confirm": "Confirmer",
+    "cancelForm": "Retour",
+    "addPhoto": "Ajouter une photo",
+    "history": "Historique",
+    "stepTo": "Désormais : {{step}}",
+    "created": "Ticket signalé"
+  },
+  "report": {
+    "title": "Signaler un problème",
+    "forAsset": "Concerne : {{name}}",
+    "whatTitle": "Quel est le problème ?",
+    "scanForTechnical": "Pour un équipement en panne, scannez le QR code collé dessus.",
+    "back": "Retour",
+    "detailsTitle": "Détails",
+    "unit": "Où",
+    "commonParts": "Dans les parties communes",
+    "description": "Décrivez le problème (facultatif)",
+    "send": "Envoyer",
+    "sentTitle": "Merci, c'est envoyé",
+    "sentIntro": "Votre ticket {{reference}} est arrivé à la résidence. Vous serez prévenu à chaque étape.",
+    "see": "Voir mon ticket",
+    "myTickets": "Mes tickets"
+  },
+  "routing": {
+    "title": "Routage des tickets",
+    "intro": "Pour chaque type de problème : qui reçoit les nouveaux tickets et qui les voit.",
+    "destination": "Envoyé à",
+    "SITE_MANAGER": "Les gestionnaires",
+    "TECHNICIANS": "Techniciens désignés",
+    "visibility": "Visible par",
+    "offered": "Proposé aux résidents",
+    "people": "Techniciens (un à cinq)"
+  },
+  "assets": {
+    "title": "Équipements",
+    "labels": "Étiquettes QR code",
+    "print": "Imprimer",
+    "count": "{{count}} équipement(s)",
+    "name": "Nom",
+    "family": "Famille",
+    "reference": "Référence",
+    "place": "Lieu",
+    "state": "État",
+    "createTitle": "Ajouter un équipement",
+    "model": "Modèle",
+    "create": "Ajouter",
+    "importTitle": "Importer des équipements depuis Excel",
+    "importIntro": "Téléchargez le modèle, remplissez une ligne par équipement, puis vérifiez le fichier avant de l'importer.",
+    "archived": "Archivé",
+    "reportProblem": "Signaler un problème dessus",
+    "documents": "Documents",
+    "warranties": "Garanties",
+    "qrTitle": "Étiquette QR code",
+    "rotateQr": "Remplacer le QR code",
+    "archive": "Archiver l'équipement",
+    "characteristics": "Caractéristiques",
+    "editCharacteristics": "Modifier les caractéristiques",
+    "documentTitle": "Titre",
+    "documentType": "Type",
+    "addDocument": "Ajouter le document",
+    "warrantyStart": "Début",
+    "warrantyEnd": "Fin",
+    "addWarranty": "Ajouter la garantie",
+    "qrUnknown": "Ce QR code n'est pas reconnu."
+  },
+  "circuits": {
+    "title": "Circuits des tickets",
+    "intro": "Les circuits sont chargés par l'architecte ; ici on les consulte et on les publie.",
+    "used": "Choisi par {{count}} client(s)",
+    "version": "Version {{number}}",
+    "status": {
+      "DRAFT": "Brouillon",
+      "PUBLISHED": "Publiée",
+      "RETIRED": "Retirée"
+    },
+    "show": "Voir",
+    "publish": "Publier",
+    "step": "Étape",
+    "category": "Catégorie",
+    "passage": "Passage",
+    "fromTo": "De → vers",
+    "permission": "Droit",
+    "guards": "Conditions",
+    "clientTitle": "Circuit des tickets d'un client",
+    "clientIntro": "Un nouveau circuit vaut pour les nouveaux tickets ; les options valent tout de suite, aussi pour les tickets ouverts.",
+    "circuit": "Circuit",
+    "autoClose": "Clôturer automatiquement les tickets traités",
+    "days": "Après combien de jours",
+    "requesterValidation": "Le demandeur valide avant la clôture",
+    "labels": "Libellés des étapes ({{language}})"
   }
 }

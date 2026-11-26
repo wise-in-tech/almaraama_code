@@ -154,6 +154,28 @@ public record Perimeter(Actor actor, Set<RoleCode> platformRoles, Set<Permission
         }
     }
 
+    /**
+     * Whether the actor holds the permission on the organization or on at least one of its sites: for what belongs to
+     * the organization but may be completed by a site's manager (equipment families, suppliers, issue types, M7).
+     */
+    public boolean canInOrganization(Permission permission, OrganizationId organizationId) {
+        return can(permission, organizationId) || sites.values().stream()
+                .anyMatch(s -> s.organizationId().equals(organizationId) && s.permissions().contains(permission));
+    }
+
+    /**
+     * {@code NOT_FOUND} when the organization is outside the perimeter, {@code PERMISSION_DENIED} unless the actor
+     * holds the permission on it or on one of its sites (see {@link #canInOrganization}).
+     */
+    public void requireInOrganization(Permission permission, OrganizationId organizationId) {
+        if (!canSee(organizationId)) {
+            throw notFound();
+        }
+        if (!canInOrganization(permission, organizationId)) {
+            throw denied();
+        }
+    }
+
     /** Whether the actor holds a platform permission, such as {@code organization:create}. */
     public boolean canOnPlatform(Permission permission) {
         return platformPermissions.contains(permission);

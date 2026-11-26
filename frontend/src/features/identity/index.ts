@@ -13,7 +13,13 @@ export { useMe } from './api/me'
  */
 export function identityRoutes<TParent extends AnyRoute>(parent: TParent) {
   return [
-    createRoute({ getParentRoute: () => parent, path: 'login', component: LoginPage }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: 'login',
+      component: LoginPage,
+      validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
+        typeof search.redirect === 'string' ? { redirect: search.redirect } : {},
+    }),
     createRoute({ getParentRoute: () => parent, path: 'invitation', component: InvitationPage }),
     createRoute({ getParentRoute: () => parent, path: 'forgot-password', component: ForgotPasswordPage }),
     createRoute({ getParentRoute: () => parent, path: 'reset-password', component: ResetPasswordPage }),

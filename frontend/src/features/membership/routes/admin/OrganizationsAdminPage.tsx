@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -84,6 +85,8 @@ function OrganizationRow({ organization }: { organization: AdminOrganization }) 
             {t('support.open')}
           </Button>
         )}
+        <Link className="rounded-lg border border-line px-4 py-2 text-sm font-semibold" to="/admin/organizations/$organizationId/workflow"
+          params={{ organizationId: organization.id }}>{t('nav.adminWorkflow')}</Link>
       </div>
       <Notice message={notice} />
       <ErrorMessage message={toggle.error || support.error ? problemMessage(toggle.error ?? support.error, t) : null} />

@@ -45,6 +45,7 @@
         <libphonenumber.version>9.0.42</libphonenumber.version>
         <altcha.version>2.1.1</altcha.version>
         <poi.version>5.5.1</poi.version>
+        <shedlock.version>7.11.0</shedlock.version>
     </properties>
 
     <dependencyManagement>
@@ -88,6 +89,17 @@
                 <version>${libphonenumber.version}</version>
             </dependency>
 
+            <!-- Scheduled jobs locked in the database (auto-close ADR-036, preventive sprint 4), Apache 2.0 licence -->
+            <dependency>
+                <groupId>net.javacrumbs.shedlock</groupId>
+                <artifactId>shedlock-spring</artifactId>
+                <version>${shedlock.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.javacrumbs.shedlock</groupId>
+                <artifactId>shedlock-provider-jdbc-template</artifactId>
+                <version>${shedlock.version}</version>
+            </dependency>
             <!-- Excel imports and templates (platform/spreadsheet, ADR-027), Apache 2.0 licence -->
             <dependency>
                 <groupId>org.apache.poi</groupId>

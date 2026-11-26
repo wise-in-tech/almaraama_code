@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { api, problemMessage, unwrap } from '@/shared/api'
 import { Badge, Button, Card, ErrorMessage, Loading, Notice, PageHeader } from '@/shared/ui'
 import { canOnSite, useMyAccess } from '../api/queries'
-import { downloadQrPng, downloadQrSvg, QrCode } from '../components/QrCode'
+import { downloadQrPng, downloadQrSvg, QrCode } from '@/shared/qr'
 
 /**
  * The registration QR code of a residence (D2, criterion 4, ADR-034): shown, downloaded (SVG, PNG), printed with a

@@ -46,13 +46,19 @@ export function HomePage() {
                 <Link className={TILE} to="/sites/$siteId/pre-registrations" params={{ siteId: site.id }}>{t('nav.preRegistrations')}</Link>
               )}
               {can('registration-qr:read') && <Link className={TILE} to="/sites/$siteId/registration-qr" params={{ siteId: site.id }}>{t('nav.qr')}</Link>}
+              {can('ticket:create') && <Link className={TILE} to="/sites/$siteId/report" params={{ siteId: site.id }}>{t('nav.report')}</Link>}
+              {can('asset:read') && <Link className={TILE} to="/sites/$siteId/assets" params={{ siteId: site.id }}>{t('nav.assets')}</Link>}
+              {can('issue-type:manage') && <Link className={TILE} to="/sites/$siteId/issue-types" params={{ siteId: site.id }}>{t('nav.routing')}</Link>}
               {site.occupiedUnitIds.length > 0 && <Link className={TILE} to="/me/accesses">{t('nav.myAccesses')}</Link>}
             </div>
           </Card>
         )
       })}
       <Card>
-        <Link className={TILE} to="/me/accesses">{t('nav.myAccesses')}</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link className={TILE} to="/tickets">{t('nav.tickets')}</Link>
+          <Link className={TILE} to="/me/accesses">{t('nav.myAccesses')}</Link>
+        </div>
       </Card>
     </section>
   )
@@ -67,6 +73,7 @@ function AdminCard({ access }: { access: MyAccess }) {
     canOnPlatform(access, 'reference-data:read') && <Link className={TILE} key="c" to="/admin/unit-categories">{t('nav.adminCategories')}</Link>,
     canOnPlatform(access, 'text:read') && <Link className={TILE} key="t" to="/admin/texts">{t('nav.adminTexts')}</Link>,
     canOnPlatform(access, 'support:access') && <Link className={TILE} key="s" to="/admin/support">{t('nav.adminSupport')}</Link>,
+    canOnPlatform(access, 'ticket-workflow:read') && <Link className={TILE} key="w" to="/admin/workflows">{t('nav.adminWorkflows')}</Link>,
   ].filter(Boolean)
   if (links.length === 0) return null
   return (

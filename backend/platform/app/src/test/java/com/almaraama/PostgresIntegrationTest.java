@@ -44,6 +44,9 @@ abstract class PostgresIntegrationTest {
         // ADR-032: throwaway key and an easy challenge, so a test solves it in a few milliseconds.
         registry.add("almaraama.altcha.allow-ephemeral-key", () -> "true");
         registry.add("almaraama.altcha.max-number", () -> "2000");
+        // ADR-038: throwaway link key and a temporary directory for the stored files.
+        registry.add("almaraama.files.allow-ephemeral-key", () -> "true");
+        registry.add("almaraama.files.directory", () -> System.getProperty("java.io.tmpdir") + "/almaraama-test-files");
         // No background job during a test (outbox resubmission).
         registry.add("almaraama.scheduling.enabled", () -> "false");
     }

@@ -8,7 +8,7 @@
  */
 @ApplicationModule(
         displayName = "audit",
-        allowedDependencies = { "shared", "identity :: events", "maintenance :: events", "membership :: events",
+        allowedDependencies = { "shared", "identity :: events", "maintenance :: events", "membership :: events", "workflow :: events", "assets :: events",
                 "sites :: events", "customization :: events" })
 package com.almaraama.audit;
 

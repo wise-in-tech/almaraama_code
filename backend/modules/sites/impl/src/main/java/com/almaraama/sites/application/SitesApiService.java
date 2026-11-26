@@ -15,6 +15,12 @@ import com.almaraama.sites.api.CreateOrganization;
 import com.almaraama.sites.api.OrganizationSummary;
 import com.almaraama.sites.api.SiteSummary;
 import com.almaraama.sites.api.SitesApi;
+import com.almaraama.sites.api.AddressSummary;
+import com.almaraama.sites.api.OutdoorAreaSummary;
+import com.almaraama.sites.domain.AddressOwnerType;
+import com.almaraama.sites.domain.OutdoorArea;
+import com.almaraama.sites.domain.OutdoorAreaRepository;
+import com.almaraama.shared.i18n.LocalizedText;
 import com.almaraama.sites.api.UnitSummary;
 import com.almaraama.sites.api.events.OrganizationCreatedV1;
 import com.almaraama.sites.domain.Building;
@@ -32,6 +38,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -50,13 +57,18 @@ class SitesApiService implements SitesApi {
     private final SiteRepository sites;
     private final BuildingRepository buildings;
     private final UnitRepository units;
+    private final OutdoorAreaRepository outdoorAreas;
+    private final AddressBook addresses;
     private final ReferenceData reference;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     /** Wires the repositories read by other modules. */
     SitesApiService(OrganizationRepository organizations, SiteRepository sites, BuildingRepository buildings,
-                    UnitRepository units, ReferenceData reference, ApplicationEventPublisher events, Clock clock) {
+                    UnitRepository units, OutdoorAreaRepository outdoorAreas, AddressBook addresses,
+                    ReferenceData reference, ApplicationEventPublisher events, Clock clock) {
+        this.outdoorAreas = outdoorAreas;
+        this.addresses = addresses;
         this.reference = reference;
         this.organizations = organizations;
         this.sites = sites;
@@ -183,6 +195,60 @@ class SitesApiService implements SitesApi {
     }
 
     /** Back-office view of an organization. */
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public List<BuildingSummary> findBuildings(Collection<BuildingId> buildingIds) {
+        return buildingIds.stream().distinct().map(buildings::findById).flatMap(Optional::stream)
+                .map(SitesApiService::summary).toList();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<OutdoorAreaSummary> findOutdoorArea(UUID outdoorAreaId) {
+        return outdoorAreas.findById(outdoorAreaId).map(SitesApiService::summary);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public List<OutdoorAreaSummary> findOutdoorAreas(Collection<UUID> outdoorAreaIds) {
+        return outdoorAreaIds.stream().distinct().map(outdoorAreas::findById).flatMap(Optional::stream)
+                .map(SitesApiService::summary).toList();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public List<OutdoorAreaSummary> activeOutdoorAreas(SiteId siteId) {
+        return outdoorAreas.ofSite(siteId, false).stream().map(SitesApiService::summary).toList();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, AddressSummary> currentAddresses(Collection<BuildingId> buildingIds, Collection<SiteId> siteIds) {
+        Map<UUID, AddressSummary> result = new java.util.HashMap<>();
+        addresses.current(AddressOwnerType.BUILDING, buildingIds.stream().map(BuildingId::value).distinct().toList())
+                .forEach((owner, view) -> result.put(owner, summary(view)));
+        addresses.current(AddressOwnerType.SITE, siteIds.stream().map(SiteId::value).distinct().toList())
+                .forEach((owner, view) -> result.put(owner, summary(view)));
+        return result;
+    }
+
+    /** An address with the name of its zone. */
+    private static AddressSummary summary(Views.AddressView view) {
+        com.almaraama.sites.domain.LocalizedName name = view.zone().zone().name();
+        return new AddressSummary(view.address().label(), view.address().addressLine(), view.address().postalCode(),
+                new LocalizedText(name.ar(), name.en(), name.fr()).filled(view.zone().zone().code()));
+    }
+
+    /** An outdoor area as other modules see it. */
+    private static OutdoorAreaSummary summary(OutdoorArea area) {
+        return new OutdoorAreaSummary(area.id(), area.siteId(), area.name(), area.active());
+    }
+
     private OrganizationAdminView adminView(Organization o, long siteCount) {
         String currency = reference.findCountry(o.countryCode()).map(c -> c.currencyCode()).orElse(null);
         return new OrganizationAdminView(o.id(), o.type(), o.name(), o.countryCode(), currency,

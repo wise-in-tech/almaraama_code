@@ -8,7 +8,7 @@
  */
 @ApplicationModule(
         displayName = "maintenance",
-        allowedDependencies = { "shared", "membership :: api", "assets :: api", "files :: api", "workflow :: api", "customization :: api" })
+        allowedDependencies = { "shared", "identity :: api", "sites :: api", "membership :: api", "assets :: api", "files :: api", "workflow :: api" })
 package com.almaraama.maintenance;
 
 import org.springframework.modulith.ApplicationModule;

@@ -6,4 +6,4 @@ export { isProblem, problemMessage, problemMessageKeys, type Problem } from './p
 export type { components, paths } from './schema'
 export { endSession, refreshSession, SESSION_ENDED_EVENT, startSession } from './session'
 export { unwrap } from './unwrap'
-export { fileBody } from './upload'
+export { fileBody, fileWithFields } from './upload'

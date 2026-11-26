@@ -100,4 +100,24 @@ class PerimeterService implements PerimeterApi {
                         session.id()))
                 .orElse(perimeter);
     }
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional(readOnly = true)
+    public List<PersonId> holders(Permission permission, OrganizationId organizationId,
+                                  com.almaraama.shared.id.SiteId siteId, boolean siteRolesFirst) {
+        List<RoleAssignment> active = assignments.activeInOrganization(organizationId);
+        java.util.function.Function<List<RoleAssignment>, List<PersonId>> holding = list -> list.stream()
+                .map(RoleAssignment::personId).distinct()
+                .filter(person -> perimeterOf(person).can(permission, organizationId, siteId)).toList();
+        List<RoleAssignment> onSite = active.stream()
+                .filter(a -> a.siteId().equals(java.util.Optional.of(siteId))).toList();
+        if (!siteRolesFirst) {
+            return holding.apply(active.stream().filter(a -> a.scopeType() == com.almaraama.shared.access.ScopeType.ORGANIZATION
+                    || a.siteId().equals(java.util.Optional.of(siteId))).toList());
+        }
+        List<PersonId> site = holding.apply(onSite);
+        return site.isEmpty() ? holding.apply(active.stream()
+                .filter(a -> a.scopeType() == com.almaraama.shared.access.ScopeType.ORGANIZATION).toList()) : site;
+    }
 }

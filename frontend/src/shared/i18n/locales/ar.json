@@ -79,7 +79,34 @@
       "TEXT_VARIABLES_CHANGED": "احتفظ بالمتغيرات {{…}} نفسها الموجودة في النص الأصلي.",
       "ROLE_ASSIGNMENT_EXISTS": "لهذا الشخص هذا الدور بالفعل.",
       "ROLE_NOT_GRANTABLE": "لا يمكنك منح هذا الدور.",
-      "PERMISSION_NOT_ADJUSTABLE": "لا يمكن تعديل هذه الصلاحية."
+      "PERMISSION_NOT_ADJUSTABLE": "لا يمكن تعديل هذه الصلاحية.",
+      "TRANSITION_NOT_AVAILABLE": "لم يعد هذا الإجراء ممكنًا. أعد تحميل الطلب.",
+      "REASON_REQUIRED": "اختر سببًا.",
+      "COMMENT_REQUIRED": "التعليق مطلوب.",
+      "SELF_CLOSE_FORBIDDEN": "لا يمكنك إغلاق طلب قدمته بنفسك.",
+      "REQUESTER_CONFIRMATION_REQUIRED": "يجب أن يؤكد صاحب الطلب أولًا.",
+      "TICKET_ASSET_REQUIRED": "امسح رمز QR الخاص بالتجهيز لهذه المشكلة.",
+      "TICKET_PHOTO_LIMIT": "ثلاث صور كحد أقصى.",
+      "TICKET_UNIT_NOT_OCCUPIED": "هذه الوحدة ليست لك.",
+      "TICKET_CLOSED": "هذا الطلب منتهٍ.",
+      "TICKET_LOCATION_INVALID": "اختر عمارة أو مساحة خارجية، وليس الاثنين.",
+      "ISSUE_TYPE_ARCHIVED": "لم يعد هذا النوع من المشاكل متاحًا.",
+      "TECHNICIAN_NOT_ELIGIBLE": "لا يمكن لهذا الشخص معالجة طلبات الإقامة.",
+      "FILE_NOT_USABLE": "لم يعد بالإمكان استخدام هذا الملف. أرسله من جديد.",
+      "UNSUPPORTED_CONTENT": "هذا الملف غير مقبول. أرسل صورة (JPEG، PNG) أو PDF.",
+      "TOO_LARGE": "هذا الملف كبير جدًا.",
+      "IMAGE_TOO_LARGE": "هذه الصورة كبيرة جدًا.",
+      "ASSET_REFERENCE_TAKEN": "تجهيز آخر يحمل هذا المرجع.",
+      "ASSET_ARCHIVED": "هذا التجهيز مؤرشف.",
+      "ASSET_MODEL_FAMILY_MISMATCH": "هذا الطراز ينتمي إلى عائلة أخرى.",
+      "ATTRIBUTE_INVALID": "تحقق من الخصائص.",
+      "WARRANTY_DATES_INVALID": "يجب أن تكون النهاية بعد البداية.",
+      "WORKFLOW_DEFINITION_INVALID": "هذا المسار غير صالح ولا يمكن نشره.",
+      "WORKFLOW_VERSION_PUBLISHED": "هذا الإصدار منشور بالفعل.",
+      "WORKFLOW_SETTINGS_INVALID": "هذه الخيارات غير صالحة.",
+      "IMPORT_FAMILY_UNKNOWN": "رمز عائلة غير معروف.",
+      "IMPORT_MODEL_UNKNOWN": "طراز غير معروف في هذه العائلة.",
+      "IMPORT_SUPPLIER_UNKNOWN": "مورد غير معروف."
     }
   },
   "login": {
@@ -154,7 +181,9 @@
     "inactive": "معطلة",
     "save": "حفظ",
     "search": "بحث",
-    "loading": "جارٍ التحميل…"
+    "loading": "جارٍ التحميل…",
+    "yes": "نعم",
+    "no": "لا"
   },
   "person": {
     "firstName": "الاسم",
@@ -178,7 +207,13 @@
     "requests": "طلبات الدخول",
     "preRegistrations": "التسجيلات المسبقة",
     "qr": "رمز QR للتسجيل",
-    "myAccesses": "إقاماتي"
+    "myAccesses": "إقاماتي",
+    "report": "الإبلاغ عن مشكلة",
+    "assets": "التجهيزات",
+    "routing": "توجيه الطلبات",
+    "tickets": "الطلبات",
+    "adminWorkflows": "مسارات الطلبات",
+    "adminWorkflow": "مسار الطلبات"
   },
   "registration": {
     "title": "التسجيل في إقامتك",
@@ -476,7 +511,174 @@
       "ACCESS_REQUESTED": "{{personName}} يطلب الدخول إلى {{siteName}}.",
       "ACCESS_AUTO_APPROVED": "{{personName}} انضم إلى {{siteName}} بمفتاحه.",
       "ACCESS_APPROVED": "دخولك إلى {{siteName}} مفتوح.",
-      "ACCESS_REJECTED": "تم رفض طلبك لـ {{siteName}}."
+      "ACCESS_REJECTED": "تم رفض طلبك لـ {{siteName}}.",
+      "TICKET_CREATED": "طلب جديد {{reference}} في {{siteName}}.",
+      "TICKET_ROUTED": "الطلب {{reference}} في {{siteName}} موكل إليك.",
+      "TICKET_STATUS_CHANGED": "الطلب {{reference}} في {{siteName}} انتقل إلى مرحلة جديدة."
     }
+  },
+  "visibility": {
+    "COMMON": "الأجزاء المشتركة",
+    "PRIVATE": "خاص"
+  },
+  "holdReason": {
+    "PART": "في انتظار قطعة",
+    "QUOTE": "في انتظار عرض سعر",
+    "ACCESS": "في انتظار الدخول",
+    "OTHER": "سبب آخر"
+  },
+  "transitions": {
+    "take_charge": "التكفل",
+    "put_on_hold": "وضع في الانتظار",
+    "resume": "استئناف",
+    "resolve": "تمت المعالجة",
+    "confirm_resolution": "تأكيد الإصلاح",
+    "reopen": "إعادة فتح",
+    "reopen_by_requester": "لم يُصلح، إعادة فتح",
+    "close": "إغلاق",
+    "cancel_by_requester": "إلغاء طلبي",
+    "cancel_by_manager": "إلغاء مع ذكر السبب",
+    "auto_close": "إغلاق تلقائي"
+  },
+  "part": {
+    "REQUESTER": "صاحب الطلب",
+    "MANAGER": "المسير",
+    "TECHNICIAN": "التقني",
+    "SYSTEM": "النظام",
+    "OTHER": "شخص"
+  },
+  "activity": {
+    "CREATED": "تم الإبلاغ عن الطلب",
+    "PHOTO_ADDED": "أضيفت صورة",
+    "TECHNICIAN_ROUTED": "تم تعيين تقني"
+  },
+  "assetState": {
+    "IN_SERVICE": "في الخدمة",
+    "OUT_OF_ORDER": "معطل",
+    "DECOMMISSIONED": "خارج الخدمة"
+  },
+  "documentType": {
+    "MANUAL": "دليل",
+    "CERTIFICATE": "شهادة",
+    "INVOICE": "فاتورة",
+    "PHOTO": "صورة",
+    "OTHER": "أخرى"
+  },
+  "tickets": {
+    "title": "الطلبات",
+    "report": "الإبلاغ عن مشكلة",
+    "view": {
+      "MINE": "طلباتي",
+      "COMMON": "الأجزاء المشتركة",
+      "ALL": "كل الطلبات"
+    },
+    "site": "الإقامة",
+    "allSites": "كل الإقامات",
+    "showAll": "عرض الطلبات المغلقة أيضًا",
+    "showOpen": "الطلبات المفتوحة فقط",
+    "none": "لا توجد طلبات.",
+    "photos": "الصور ({{count}} من {{max}})",
+    "photoSending": "جارٍ إرسال الصورة…",
+    "requester": "طلبه {{name}}",
+    "technicians": "التقنيون: {{names}}",
+    "photoAlt": "صورة المشكلة",
+    "floor": "الطابق {{floor}}",
+    "actions": "ما يمكنك فعله",
+    "reason": "السبب",
+    "comment": "تعليق",
+    "missing": {
+      "reason": "اختر سببًا.",
+      "comment": "اكتب تعليقًا."
+    },
+    "confirm": "تأكيد",
+    "cancelForm": "رجوع",
+    "addPhoto": "إضافة صورة",
+    "history": "السجل",
+    "stepTo": "الحالة الآن: {{step}}",
+    "created": "تم الإبلاغ عن الطلب"
+  },
+  "report": {
+    "title": "الإبلاغ عن مشكلة",
+    "forAsset": "بخصوص: {{name}}",
+    "whatTitle": "ما المشكلة؟",
+    "scanForTechnical": "لتجهيز معطل، امسح رمز QR الملصق عليه.",
+    "back": "رجوع",
+    "detailsTitle": "التفاصيل",
+    "unit": "أين",
+    "commonParts": "في الأجزاء المشتركة",
+    "description": "صف المشكلة (اختياري)",
+    "send": "إرسال",
+    "sentTitle": "شكرًا، تم الإرسال",
+    "sentIntro": "وصل طلبك {{reference}} إلى الإقامة. سيتم إعلامك بكل مرحلة.",
+    "see": "عرض طلبي",
+    "myTickets": "طلباتي"
+  },
+  "routing": {
+    "title": "توجيه الطلبات",
+    "intro": "لكل نوع مشكلة: من يستلم الطلبات الجديدة ومن يراها.",
+    "destination": "يُرسل إلى",
+    "SITE_MANAGER": "المسيرون",
+    "TECHNICIANS": "تقنيون محددون",
+    "visibility": "يراه",
+    "offered": "متاح للسكان",
+    "people": "التقنيون (من واحد إلى خمسة)"
+  },
+  "assets": {
+    "title": "التجهيزات",
+    "labels": "ملصقات رمز QR",
+    "print": "طباعة",
+    "count": "{{count}} تجهيز",
+    "name": "الاسم",
+    "family": "العائلة",
+    "reference": "المرجع",
+    "place": "المكان",
+    "state": "الحالة",
+    "createTitle": "إضافة تجهيز",
+    "model": "الطراز",
+    "create": "إضافة",
+    "importTitle": "استيراد التجهيزات من Excel",
+    "importIntro": "نزّل النموذج، واملأ سطرًا لكل تجهيز، ثم تحقق من الملف قبل استيراده.",
+    "archived": "مؤرشف",
+    "reportProblem": "الإبلاغ عن مشكلة فيه",
+    "documents": "الوثائق",
+    "warranties": "الضمانات",
+    "qrTitle": "ملصق رمز QR",
+    "rotateQr": "استبدال رمز QR",
+    "archive": "أرشفة التجهيز",
+    "characteristics": "الخصائص",
+    "editCharacteristics": "تعديل الخصائص",
+    "documentTitle": "العنوان",
+    "documentType": "النوع",
+    "addDocument": "إضافة الوثيقة",
+    "warrantyStart": "البداية",
+    "warrantyEnd": "النهاية",
+    "addWarranty": "إضافة الضمان",
+    "qrUnknown": "رمز QR هذا غير معروف."
+  },
+  "circuits": {
+    "title": "مسارات الطلبات",
+    "intro": "يحمّل المهندس المسارات؛ هنا تُعرض وتُنشر.",
+    "used": "اختاره {{count}} عميل",
+    "version": "الإصدار {{number}}",
+    "status": {
+      "DRAFT": "مسودة",
+      "PUBLISHED": "منشور",
+      "RETIRED": "متقاعد"
+    },
+    "show": "عرض",
+    "publish": "نشر",
+    "step": "المرحلة",
+    "category": "الفئة",
+    "passage": "الانتقال",
+    "fromTo": "من ← إلى",
+    "permission": "الصلاحية",
+    "guards": "الشروط",
+    "clientTitle": "مسار طلبات عميل",
+    "clientIntro": "يُطبَّق المسار الجديد على الطلبات الجديدة؛ وتُطبَّق الخيارات فورًا، حتى على الطلبات المفتوحة.",
+    "circuit": "المسار",
+    "autoClose": "إغلاق الطلبات المعالجة تلقائيًا",
+    "days": "بعد كم يومًا",
+    "requesterValidation": "يؤكد صاحب الطلب قبل الإغلاق",
+    "labels": "تسميات المراحل ({{language}})"
   }
 }

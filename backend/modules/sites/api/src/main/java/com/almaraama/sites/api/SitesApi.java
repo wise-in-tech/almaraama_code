@@ -9,7 +9,9 @@ import com.almaraama.shared.id.SiteId;
 import com.almaraama.shared.id.UnitId;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Public port of the sites module (CF-1). Other modules read organizations, sites, buildings and units here, by
@@ -62,4 +64,22 @@ public interface SitesApi {
 
     /** Every unit of a site, active or archived (imports match their references, D3). */
     List<UnitSummary> unitsOfSite(SiteId siteId);
+
+    /** Several buildings, active or not; unknown identifiers are left out (sprint 3: tickets, equipment). */
+    List<BuildingSummary> findBuildings(Collection<BuildingId> buildingIds);
+
+    /** An outdoor area (A3), active or not. */
+    Optional<OutdoorAreaSummary> findOutdoorArea(UUID outdoorAreaId);
+
+    /** Several outdoor areas, active or not; unknown identifiers are left out. */
+    List<OutdoorAreaSummary> findOutdoorAreas(Collection<UUID> outdoorAreaIds);
+
+    /** The active outdoor areas of a site, by name (equipment import, ADR-027). */
+    List<OutdoorAreaSummary> activeOutdoorAreas(SiteId siteId);
+
+    /**
+     * The current addresses of buildings and sites, keyed by the building's or the site's identifier (A9, criterion
+     * 18): a building has its own address or the copy of its site's; owners without address are left out.
+     */
+    Map<UUID, AddressSummary> currentAddresses(Collection<BuildingId> buildingIds, Collection<SiteId> siteIds);
 }

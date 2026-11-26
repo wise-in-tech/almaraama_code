@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
+import { safeRedirect } from '../lib/redirect'
 import { api, isProblem, problemMessage, startSession } from '@/shared/api'
 import { log } from '@/shared/log'
 import { Field, FormMessage, PasswordField, SubmitButton } from '../components/fields'
@@ -22,6 +23,7 @@ type LoginForm = z.infer<typeof loginSchema>
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { redirect } = useSearch({ strict: false }) as { redirect?: string }
   const [failure, setFailure] = useState<string | null>(null)
   const [unverified, setUnverified] = useState(false)
   const { register, handleSubmit, formState } = useForm<LoginForm>({
@@ -40,7 +42,7 @@ export function LoginPage() {
       return
     }
     startSession(data)
-    await navigate({ to: '/' })
+    await navigate({ href: safeRedirect(redirect) })
   })
 
   return (

@@ -11,9 +11,10 @@ spring:
 
   servlet:
     multipart:
-      # Excel imports (ADR-027): 2 MB per file; the file is read in memory, never written to disk by us.
-      max-file-size: 2MB
-      max-request-size: 3MB
+      # Largest upload: an equipment document (ADR-038, 10 MB). Each endpoint checks its own, smaller limit too:
+      # Excel imports 2 MB (ADR-027), ticket photos 8 MB.
+      max-file-size: 10MB
+      max-request-size: 11MB
 
   datasource:
     # Application role: SELECT, INSERT, UPDATE only. No DELETE on business tables (M2).
@@ -131,6 +132,14 @@ almaraama:
       username: ${ALMARAAMA_SMTP_USERNAME:}
       password-file: ${ALMARAAMA_SMTP_PASSWORD_FILE:}
       starttls-required: ${ALMARAAMA_SMTP_STARTTLS_REQUIRED:true}
+  # Stored files (ADR-038): a directory outside the image and the web root, on the encrypted data disk; links signed
+  # with a key from a secret file, valid 5 minutes.
+  files:
+    directory: ${ALMARAAMA_FILES_DIR:/var/lib/almaraama/files}
+    link-key-file: ${ALMARAAMA_FILE_LINK_KEY_FILE:}
+    allow-ephemeral-key: false
+    link-ttl: 5m
+    uploads-per-minute: 30
   # Anti-robot proof of work on the public forms that send an e-mail (ADR-032).
   altcha:
     hmac-key-file: ${ALMARAAMA_ALTCHA_HMAC_KEY_FILE:}

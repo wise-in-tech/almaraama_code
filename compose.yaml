@@ -1,0 +1,117 @@
+# Local and pilot environment (section 12 of the architecture: Docker Compose).
+# Secrets come from .env (copy .env.example), never from this file.
+#   docker compose up -d postgres     database only, run the backend from the IDE
+#   docker compose up -d --build      database + backend
+
+name: almaraama
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: almaraama
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set it in .env}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      ALMARAAMA_DB_MIGRATOR_USER: ${ALMARAAMA_DB_MIGRATOR_USER:-almaraama_migrator}
+      ALMARAAMA_DB_MIGRATOR_PASSWORD: ${ALMARAAMA_DB_MIGRATOR_PASSWORD:?set it in .env}
+      ALMARAAMA_DB_APP_USER: ${ALMARAAMA_DB_APP_USER:-almaraama_app}
+      ALMARAAMA_DB_APP_PASSWORD: ${ALMARAAMA_DB_APP_PASSWORD:?set it in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      # Bound to localhost only, for the IDE. Never exposed on a public interface.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    image: almaraama/backend:${ALMARAAMA_VERSION:-dev}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ALMARAAMA_DB_URL: jdbc:postgresql://postgres:5432/almaraama
+      ALMARAAMA_DB_MIGRATOR_USER: ${ALMARAAMA_DB_MIGRATOR_USER:-almaraama_migrator}
+      ALMARAAMA_DB_MIGRATOR_PASSWORD: ${ALMARAAMA_DB_MIGRATOR_PASSWORD:?set it in .env}
+      ALMARAAMA_DB_APP_USER: ${ALMARAAMA_DB_APP_USER:-almaraama_app}
+      ALMARAAMA_DB_APP_PASSWORD: ${ALMARAAMA_DB_APP_PASSWORD:?set it in .env}
+      ALMARAAMA_OPENAPI_ENABLED: ${ALMARAAMA_OPENAPI_ENABLED:-false}
+      # Access-token signing key, mounted as a secret file (ADR-025).
+      ALMARAAMA_JWT_PRIVATE_KEY_FILE: /run/secrets/jwt_private_key
+      # Development only: SPRING_PROFILES_ACTIVE=dev and an e-mail give a demo promoteur (link in Mailpit).
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
+      ALMARAAMA_DEV_INVITE_EMAIL: ${ALMARAAMA_DEV_INVITE_EMAIL:-}
+      ALMARAAMA_DEV_INVITE_PHONE: ${ALMARAAMA_DEV_INVITE_PHONE:-+213661234567}
+      # Debug mode (ADR-033): the one switch of the technical logs.
+      ALMARAAMA_LOG_LEVEL: ${ALMARAAMA_LOG_LEVEL:-INFO}
+      # Account e-mails (ADR-031): Mailpit by default; the relay in Algeria in production.
+      ALMARAAMA_SMTP_HOST: ${ALMARAAMA_SMTP_HOST:-mailpit}
+      ALMARAAMA_SMTP_PORT: ${ALMARAAMA_SMTP_PORT:-1025}
+      ALMARAAMA_SMTP_USERNAME: ${ALMARAAMA_SMTP_USERNAME:-}
+      ALMARAAMA_SMTP_PASSWORD_FILE: ${ALMARAAMA_SMTP_PASSWORD_FILE:-}
+      ALMARAAMA_SMTP_STARTTLS_REQUIRED: ${ALMARAAMA_SMTP_STARTTLS_REQUIRED:-false}
+      ALMARAAMA_MAIL_FROM: ${ALMARAAMA_MAIL_FROM:-no-reply@almaraama.local}
+      ALMARAAMA_MAIL_LINK_BASE_URL: ${ALMARAAMA_MAIL_LINK_BASE_URL:-http://localhost:5173}
+      ALMARAAMA_PLATFORM_ADMIN_EMAILS_FILE: ${ALMARAAMA_PLATFORM_ADMIN_EMAILS_FILE:-}
+      # Anti-robot proof of work (ADR-032): HMAC key mounted as a secret.
+      ALMARAAMA_ALTCHA_HMAC_KEY_FILE: /run/secrets/altcha_hmac_key
+      # Stored files (ADR-038): a volume outside the image; links signed with a key mounted as a secret.
+      ALMARAAMA_FILES_DIR: /var/lib/almaraama/files
+      ALMARAAMA_FILE_LINK_KEY_FILE: /run/secrets/file_link_key
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+    secrets:
+      - jwt_private_key
+      - altcha_hmac_key
+      - file_link_key
+    volumes:
+      - files-data:/var/lib/almaraama/files
+    ports:
+      # API on localhost only; in the pilot, the reverse proxy (TLS, HSTS, rate limiting) is the only entry point.
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+      # Management port 8081 (health, Prometheus) is intentionally not published.
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      # No curl in the runtime image: plain HTTP request through bash.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8081 && printf 'GET /actuator/health/readiness HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 6
+
+  # Development e-mail catcher (ADR-031): every account e-mail is shown on http://127.0.0.1:8025, nothing leaves.
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+
+volumes:
+  postgres-data:
+  files-data:
+
+secrets:
+  file_link_key:
+    # Generate once: openssl rand -hex 32 > secrets/file-link.key
+    file: ${ALMARAAMA_FILE_LINK_KEY_PATH:-./secrets/file-link.key}
+  altcha_hmac_key:
+    # Generate once: openssl rand -hex 32 > secrets/altcha-hmac.key
+    file: ${ALMARAAMA_ALTCHA_HMAC_KEY_PATH:-./secrets/altcha-hmac.key}
+  jwt_private_key:
+    # Generate once: openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out secrets/jwt-private.pem
+    file: ${ALMARAAMA_JWT_PRIVATE_KEY_PATH:-./secrets/jwt-private.pem}

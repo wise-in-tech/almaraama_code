@@ -44,7 +44,9 @@ class ProblemHandler {
     @ExceptionHandler(BusinessException.class)
     ResponseEntity<ProblemDetail> business(BusinessException error) {
         HttpStatus status = Problems.status(error.category());
-        ProblemDetail problem = Problems.of(status, error.code());
+        ProblemDetail problem = error.fields().isEmpty() ? Problems.of(status, error.code())
+                : Problems.withViolations(status, error.code(), error.fields().stream()
+                        .map(field -> Map.of("field", field, "code", error.code())).toList());
         ResponseEntity.BodyBuilder response = ResponseEntity.status(status);
         error.retryAfter().ifPresent(delay -> {
             long seconds = Math.max(1, delay.toSeconds());
@@ -100,11 +102,13 @@ class ProblemHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Problems.of(HttpStatus.CONFLICT, "CONFLICT"));
     }
 
-    /** An uploaded file above the size limit: {@code 413 IMPORT_FILE_TOO_LARGE}. */
+    /** An uploaded file above the multipart limit: {@code 413 IMPORT_FILE_TOO_LARGE} on imports, else {@code TOO_LARGE}. */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ResponseEntity<ProblemDetail> tooLarge(MaxUploadSizeExceededException error) {
+    ResponseEntity<ProblemDetail> tooLarge(MaxUploadSizeExceededException error,
+                                           jakarta.servlet.http.HttpServletRequest request) {
+        String code = request.getRequestURI().endsWith("/import") ? "IMPORT_FILE_TOO_LARGE" : "TOO_LARGE";
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
-                .body(Problems.of(HttpStatus.CONTENT_TOO_LARGE, "IMPORT_FILE_TOO_LARGE"));
+                .body(Problems.of(HttpStatus.CONTENT_TOO_LARGE, code));
     }
 
     /** An unknown path: {@code 404 NOT_FOUND}, the same answer as something outside the perimeter. */

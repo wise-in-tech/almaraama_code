@@ -11,7 +11,9 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -q -pl platform/app -am package -
 FROM eclipse-temurin:25-jre-noble
 # Non-root user, read-only application files.
 RUN groupadd --system --gid 10001 almaraama \
- && useradd --system --uid 10001 --gid almaraama --no-create-home --shell /usr/sbin/nologin almaraama
+ && useradd --system --uid 10001 --gid almaraama --no-create-home --shell /usr/sbin/nologin almaraama \
+ && mkdir -p /var/lib/almaraama/files && chown 10001:10001 /var/lib/almaraama/files
+# /var/lib/almaraama/files: stored files (ADR-038), a volume in compose; the only writable path besides /tmp.
 WORKDIR /app
 COPY --from=build /workspace/extracted/dependencies/ ./
 COPY --from=build /workspace/extracted/spring-boot-loader/ ./

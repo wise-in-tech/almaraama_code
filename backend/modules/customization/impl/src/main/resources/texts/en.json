@@ -79,7 +79,34 @@
       "TEXT_VARIABLES_CHANGED": "Keep exactly the {{…}} variables of the original text.",
       "ROLE_ASSIGNMENT_EXISTS": "This person already has this role.",
       "ROLE_NOT_GRANTABLE": "You cannot give this role.",
-      "PERMISSION_NOT_ADJUSTABLE": "This permission cannot be changed."
+      "PERMISSION_NOT_ADJUSTABLE": "This permission cannot be changed.",
+      "TRANSITION_NOT_AVAILABLE": "This action is no longer possible. Reload the ticket.",
+      "REASON_REQUIRED": "Choose a reason.",
+      "COMMENT_REQUIRED": "A comment is needed.",
+      "SELF_CLOSE_FORBIDDEN": "You cannot close a ticket you asked for.",
+      "REQUESTER_CONFIRMATION_REQUIRED": "The requester must confirm first.",
+      "TICKET_ASSET_REQUIRED": "Scan the QR code of the equipment for this problem.",
+      "TICKET_PHOTO_LIMIT": "Three photos at most.",
+      "TICKET_UNIT_NOT_OCCUPIED": "This unit is not yours.",
+      "TICKET_CLOSED": "This ticket is finished.",
+      "TICKET_LOCATION_INVALID": "Choose a building or an outdoor area, not both.",
+      "ISSUE_TYPE_ARCHIVED": "This type of problem is no longer offered.",
+      "TECHNICIAN_NOT_ELIGIBLE": "This person cannot handle tickets of the residence.",
+      "FILE_NOT_USABLE": "This file can no longer be used. Send it again.",
+      "UNSUPPORTED_CONTENT": "This file is not accepted. Send a photo (JPEG, PNG) or a PDF.",
+      "TOO_LARGE": "This file is too large.",
+      "IMAGE_TOO_LARGE": "This image is too large.",
+      "ASSET_REFERENCE_TAKEN": "Another equipment has this reference.",
+      "ASSET_ARCHIVED": "This equipment is archived.",
+      "ASSET_MODEL_FAMILY_MISMATCH": "This model belongs to another family.",
+      "ATTRIBUTE_INVALID": "Check the characteristics.",
+      "WARRANTY_DATES_INVALID": "The end must come after the start.",
+      "WORKFLOW_DEFINITION_INVALID": "This circuit is not valid and cannot be published.",
+      "WORKFLOW_VERSION_PUBLISHED": "This version is already published.",
+      "WORKFLOW_SETTINGS_INVALID": "These options are not valid.",
+      "IMPORT_FAMILY_UNKNOWN": "Unknown family code.",
+      "IMPORT_MODEL_UNKNOWN": "Unknown model of this family.",
+      "IMPORT_SUPPLIER_UNKNOWN": "Unknown supplier."
     }
   },
   "login": {
@@ -154,7 +181,9 @@
     "inactive": "Deactivated",
     "save": "Save",
     "search": "Search",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "yes": "Yes",
+    "no": "No"
   },
   "person": {
     "firstName": "First name",
@@ -178,7 +207,13 @@
     "requests": "Access requests",
     "preRegistrations": "Pre-registrations",
     "qr": "Registration QR code",
-    "myAccesses": "My residences"
+    "myAccesses": "My residences",
+    "report": "Report a problem",
+    "assets": "Equipment",
+    "routing": "Ticket routing",
+    "tickets": "Tickets",
+    "adminWorkflows": "Ticket circuits",
+    "adminWorkflow": "Ticket circuit"
   },
   "registration": {
     "title": "Register to your residence",
@@ -476,7 +511,174 @@
       "ACCESS_REQUESTED": "{{personName}} asks for access to {{siteName}}.",
       "ACCESS_AUTO_APPROVED": "{{personName}} joined {{siteName}} with their key.",
       "ACCESS_APPROVED": "Your access to {{siteName}} is open.",
-      "ACCESS_REJECTED": "Your request for {{siteName}} was refused."
+      "ACCESS_REJECTED": "Your request for {{siteName}} was refused.",
+      "TICKET_CREATED": "New ticket {{reference}} in {{siteName}}.",
+      "TICKET_ROUTED": "Ticket {{reference}} in {{siteName}} is for you.",
+      "TICKET_STATUS_CHANGED": "Ticket {{reference}} in {{siteName}} has a new step."
     }
+  },
+  "visibility": {
+    "COMMON": "Common parts",
+    "PRIVATE": "Private"
+  },
+  "holdReason": {
+    "PART": "Waiting for a part",
+    "QUOTE": "Waiting for a quote",
+    "ACCESS": "Waiting for access",
+    "OTHER": "Other reason"
+  },
+  "transitions": {
+    "take_charge": "Take charge",
+    "put_on_hold": "Put on hold",
+    "resume": "Resume",
+    "resolve": "Mark as resolved",
+    "confirm_resolution": "Confirm it is fixed",
+    "reopen": "Reopen",
+    "reopen_by_requester": "It is not fixed, reopen",
+    "close": "Close",
+    "cancel_by_requester": "Cancel my request",
+    "cancel_by_manager": "Cancel with a reason",
+    "auto_close": "Closed automatically"
+  },
+  "part": {
+    "REQUESTER": "Requester",
+    "MANAGER": "Manager",
+    "TECHNICIAN": "Technician",
+    "SYSTEM": "System",
+    "OTHER": "Someone"
+  },
+  "activity": {
+    "CREATED": "Ticket reported",
+    "PHOTO_ADDED": "Photo added",
+    "TECHNICIAN_ROUTED": "Technician designated"
+  },
+  "assetState": {
+    "IN_SERVICE": "In service",
+    "OUT_OF_ORDER": "Out of order",
+    "DECOMMISSIONED": "Decommissioned"
+  },
+  "documentType": {
+    "MANUAL": "Manual",
+    "CERTIFICATE": "Certificate",
+    "INVOICE": "Invoice",
+    "PHOTO": "Photo",
+    "OTHER": "Other"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "report": "Report a problem",
+    "view": {
+      "MINE": "My tickets",
+      "COMMON": "Common parts",
+      "ALL": "All tickets"
+    },
+    "site": "Residence",
+    "allSites": "All residences",
+    "showAll": "Show closed tickets too",
+    "showOpen": "Open tickets only",
+    "none": "No ticket.",
+    "photos": "Photos ({{count}} of {{max}})",
+    "photoSending": "Sending the photo…",
+    "requester": "Asked by {{name}}",
+    "technicians": "Technicians: {{names}}",
+    "photoAlt": "Photo of the problem",
+    "floor": "Floor {{floor}}",
+    "actions": "What you can do",
+    "reason": "Reason",
+    "comment": "Comment",
+    "missing": {
+      "reason": "Choose a reason.",
+      "comment": "Write a comment."
+    },
+    "confirm": "Confirm",
+    "cancelForm": "Back",
+    "addPhoto": "Add a photo",
+    "history": "History",
+    "stepTo": "Now: {{step}}",
+    "created": "Ticket reported"
+  },
+  "report": {
+    "title": "Report a problem",
+    "forAsset": "About: {{name}}",
+    "whatTitle": "What is wrong?",
+    "scanForTechnical": "For a broken equipment, scan the QR code on it.",
+    "back": "Back",
+    "detailsTitle": "Details",
+    "unit": "Where",
+    "commonParts": "In the common parts",
+    "description": "Describe the problem (optional)",
+    "send": "Send",
+    "sentTitle": "Thank you, it is sent",
+    "sentIntro": "Your ticket {{reference}} has reached the residence. You will be told of each step.",
+    "see": "See my ticket",
+    "myTickets": "My tickets"
+  },
+  "routing": {
+    "title": "Ticket routing",
+    "intro": "For each type of problem: who receives new tickets and who sees them.",
+    "destination": "Sent to",
+    "SITE_MANAGER": "The managers",
+    "TECHNICIANS": "Designated technicians",
+    "visibility": "Seen by",
+    "offered": "Offered to residents",
+    "people": "Technicians (one to five)"
+  },
+  "assets": {
+    "title": "Equipment",
+    "labels": "QR code labels",
+    "print": "Print",
+    "count": "{{count}} equipment",
+    "name": "Name",
+    "family": "Family",
+    "reference": "Reference",
+    "place": "Place",
+    "state": "State",
+    "createTitle": "Add an equipment",
+    "model": "Model",
+    "create": "Add",
+    "importTitle": "Import equipment from Excel",
+    "importIntro": "Download the template, fill one row per equipment, then check the file before importing it.",
+    "archived": "Archived",
+    "reportProblem": "Report a problem on it",
+    "documents": "Documents",
+    "warranties": "Warranties",
+    "qrTitle": "QR code label",
+    "rotateQr": "Replace the QR code",
+    "archive": "Archive the equipment",
+    "characteristics": "Characteristics",
+    "editCharacteristics": "Change the characteristics",
+    "documentTitle": "Title",
+    "documentType": "Kind",
+    "addDocument": "Add the document",
+    "warrantyStart": "Start",
+    "warrantyEnd": "End",
+    "addWarranty": "Add the warranty",
+    "qrUnknown": "This QR code is not known."
+  },
+  "circuits": {
+    "title": "Ticket circuits",
+    "intro": "Circuits are loaded by the architect; here they are read and published.",
+    "used": "Chosen by {{count}} client(s)",
+    "version": "Version {{number}}",
+    "status": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "RETIRED": "Retired"
+    },
+    "show": "Show",
+    "publish": "Publish",
+    "step": "Step",
+    "category": "Category",
+    "passage": "Passage",
+    "fromTo": "From → to",
+    "permission": "Permission",
+    "guards": "Conditions",
+    "clientTitle": "Ticket circuit of a client",
+    "clientIntro": "A new circuit applies to new tickets; the options apply at once, to open tickets too.",
+    "circuit": "Circuit",
+    "autoClose": "Close resolved tickets automatically",
+    "days": "After how many days",
+    "requesterValidation": "The requester confirms before closing",
+    "labels": "Labels of the steps ({{language}})"
   }
 }

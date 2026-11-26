@@ -60,6 +60,8 @@ class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/v1/registration-qr/inspect", "/v1/registrations")
                                 .permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/texts/*").permitAll()
+                        // ADR-038: files are read through signed links valid 5 minutes; the signature protects them.
+                        .requestMatchers(HttpMethod.GET, "/v1/files/*/content").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resource -> resource

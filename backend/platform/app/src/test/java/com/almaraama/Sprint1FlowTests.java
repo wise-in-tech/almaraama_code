@@ -230,7 +230,9 @@ class Sprint1FlowTests extends PostgresIntegrationTest {
         call(get("/v1/me/access"), resident).andExpect(status().isOk())
                 .andExpect(jsonPath("$.sites[0].id").value(site))
                 .andExpect(jsonPath("$.sites[0].roles[0]").value("RESIDENT"))
-                .andExpect(jsonPath("$.sites[0].permissions.length()").value(3));
+                // site, building and outdoor-area reads (sprint 1), then asset:read, issue-type:read and ticket:create
+                // (sprint 3, RB-6); "his own" and "common" tickets are relations, not permissions (ADR-037).
+                .andExpect(jsonPath("$.sites[0].permissions.length()").value(6));
         call(get("/v1/me/memberships"), resident).andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$[0].occupancies[0].unitReference").value("A-12"));

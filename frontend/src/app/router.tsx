@@ -1,8 +1,11 @@
 import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
+import { assetsRoutes } from '@/features/assets'
 import { customizationRoutes } from '@/features/customization'
 import { identityRoutes } from '@/features/identity'
+import { maintenanceRoutes } from '@/features/maintenance'
 import { membershipRoutes, publicMembershipRoutes } from '@/features/membership'
 import { sitesRoutes } from '@/features/sites'
+import { workflowRoutes } from '@/features/workflow'
 import { getAccessToken, refreshSession } from '@/shared/api'
 import { AppShell } from './shell/AppShell'
 import { HomePage } from './shell/HomePage'
@@ -17,9 +20,10 @@ const rootRoute = createRootRoute({ component: AppShell, notFoundComponent: NotF
 const signedInRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'signed-in',
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (getAccessToken() === null && !(await refreshSession())) {
-      throw redirect({ to: '/login' })
+      // Back to the page asked for after sign-in (a scanned label, criterion 8); checked by the sign-in page.
+      throw redirect({ to: '/login', search: { redirect: location.href } })
     }
   },
 })
@@ -38,6 +42,9 @@ const routeTree = rootRoute.addChildren([
     ...membershipRoutes(signedInRoute),
     ...sitesRoutes(signedInRoute),
     ...customizationRoutes(signedInRoute),
+    ...assetsRoutes(signedInRoute),
+    ...maintenanceRoutes(signedInRoute),
+    ...workflowRoutes(signedInRoute),
   ]),
 ])
 

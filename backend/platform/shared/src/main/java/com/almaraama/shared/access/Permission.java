@@ -17,7 +17,27 @@ import java.util.Set;
  */
 public enum Permission {
 
+    // ---- sprint 3: equipment (spec "equipement": families, models, suppliers, documents, warranties), ADR-039
+    ASSET_CREATE("asset:create", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    ASSET_READ("asset:read", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    ASSET_UPDATE("asset:update", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    ASSET_ARCHIVE("asset:archive", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+
+    // ---- sprint 3: issue types (spec "type_probleme"), tickets (spec "ticket"), ADR-037. The ◐ of section 3.3 are
+    // relationships checked in the queries (requester, occupant, member, assigned), never conditions on a permission.
+    ISSUE_TYPE_READ("issue-type:read", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    ISSUE_TYPE_MANAGE("issue-type:manage", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    TICKET_CREATE("ticket:create", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    TICKET_READ("ticket:read", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    TICKET_READ_PRIVATE("ticket:read-private", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    TICKET_UPDATE_STATUS("ticket:update-status", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    TICKET_CANCEL("ticket:cancel", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    TICKET_CLOSE("ticket:close", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+    TICKET_REOPEN("ticket:reopen", true, ScopeType.ORGANIZATION, ScopeType.SITE),
+
     // ---- platform (section 3.5): our team only, never adjustable
+    TICKET_WORKFLOW_READ("ticket-workflow:read", false, ScopeType.PLATFORM),
+    TICKET_WORKFLOW_CONFIGURE("ticket-workflow:configure", false, ScopeType.PLATFORM),
     ORGANIZATION_READ("organization:read", false, ScopeType.PLATFORM),
     ORGANIZATION_CREATE("organization:create", false, ScopeType.PLATFORM),
     ORGANIZATION_DEACTIVATE("organization:deactivate", false, ScopeType.PLATFORM),

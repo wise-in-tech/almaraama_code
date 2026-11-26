@@ -8,7 +8,7 @@
  */
 @ApplicationModule(
         displayName = "assets",
-        allowedDependencies = { "shared", "sites :: api", "customization :: api" })
+        allowedDependencies = { "shared", "spreadsheet", "sites :: api", "customization :: api", "files :: api" })
 package com.almaraama.assets;
 
 import org.springframework.modulith.ApplicationModule;
